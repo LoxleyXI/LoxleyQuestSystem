@@ -683,4 +683,12 @@ test("validate: two entities in one zone may not share a key", wrap(function()
     }), "a shared key should refuse the quest")
 end), { allowErrors = true })
 
+
+test("validate: a builder in place of an event refuses the quest", wrap(function()
+    T.ok(refused({
+        entities = { [zoneName] = { T.npc("Crumb") } },
+        steps = { { Crumb = LQS.dialog({ step = false, event = LQS.nothingElse() }) } },
+    }), "a handler as an event should refuse the quest")
+end), { allowErrors = true })
+
 return T

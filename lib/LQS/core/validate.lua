@@ -221,6 +221,12 @@ function P.validateQuest(tbl)
             return
         end
 
+        -- A builder's handler where an event belongs (LQS.nothingElse() for LQS.NOTHING_ELSE, say)
+        if event.kind ~= nil and (event.onTrigger ~= nil or event.onTrade ~= nil or event.onMobDeath ~= nil) then
+            err(path, "is a handler from a builder, not an event")
+            return
+        end
+
         if event.byJob ~= nil then
             for job, sub in pairs(event.byJob) do
                 markEvent(sub, path .. ".byJob[" .. tostring(job) .. "]", entity)
