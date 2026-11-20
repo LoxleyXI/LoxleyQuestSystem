@@ -21,6 +21,11 @@ function P.newCtx(fields)
     return setmetatable(fields, Ctx)
 end
 
+-- For your own code: call a handler yourself, eg. onTrigger(LQS.ctx({ player = player, npc = npc }))
+LQS.ctx = function(fields)
+    return P.newCtx(fields or {})
+end
+
 -- The quest var
 function Ctx:var()
     return self.player:getCharVar(self.quest.var)

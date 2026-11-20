@@ -302,13 +302,36 @@ def migrate_handlers(src, notes):
             continue
         named.setdefault(m.group(2), ROLES[m.group(1)])
 
+    field_of = {"ctx.player": "player", "ctx.npc": "npc", "ctx.trade": "trade", "ctx.mob": "mob"}
+
     for name, roles in named.items():
+        converted = False
         for d in re.finditer(r"local\s+function\s+" + re.escape(name) + r"\s*\(|local\s+" + re.escape(name) + r"\s*=\s*function\s*\(", src):
             if not mask[d.start()]:
                 continue
             e = convert_function(src, mask, d.start(), d.end() - 1, roles, notes, name)
             if e:
                 edits.append(e)
+                converted = True
+
+        if not converted:
+            continue
+
+        # Direct calls of a converted handler: name(a, b) -> name(LQS.ctx({ player = a, npc = b }))
+        for c in re.finditer(r"(?<![\w.:])" + re.escape(name) + r"\s*\(", src):
+            if not mask[c.start()]:
+                continue
+            before = src[max(0, c.start() - 40):c.start()]
+            if re.search(r"function\s+$", before):
+                continue  # the definition itself
+            open_at = c.end() - 1
+            close = match_close(src, mask, open_at)
+            args = [a.strip() for a in src[open_at + 1:close].split(",") if a.strip()]
+            if args == ["ctx"] or not args:
+                continue
+            fields = ", ".join(f"{field_of[r]} = {a}" for r, a in zip(roles, args) if r in field_of)
+            edits.append((open_at, close + 1, f"(LQS.ctx({{ {fields} }}))"))
+            notes.append(f"{name}: direct call -> LQS.ctx")
 
     # Menu onChoice: function(player, npc, choice) -> function(ctx, choice)
     for m in re.finditer(r"\bonChoice\s*=\s*function\s*\(([^)]*)\)", src):
