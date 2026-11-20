@@ -123,10 +123,20 @@ function P.validateQuest(tbl)
 
     -- Entities
     local names = {}
+    local keys  = {}
 
     for zoneName, list in pairs(tbl.entities or {}) do
         for i, e in ipairs(list) do
             local path = string.format("entities[%q][%d]", zoneName, i)
+
+            -- A key names one entity: steps reach it by key
+            if e.key ~= nil then
+                if keys[e.key] ~= nil then
+                    err(path .. ".key", string.format("'%s' is also the key of %s", e.key, keys[e.key]))
+                end
+
+                keys[e.key] = path
+            end
 
             if type(e.name) ~= "string" then
                 err(path, "has no name")

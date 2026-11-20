@@ -672,4 +672,16 @@ test("LQS.spawn: a handler of your own starts an encounter", wrap(function()
     T.eq(p:getCharVar("[LQS]UNIT"), 1, "quest var")
 end))
 
+
+test("validate: two entities may not share a key", wrap(function()
+    T.ok(refused({
+        entities =
+        {
+            [zoneName]          = { T.npc("Sharara", { key = "SHARARA" }) },
+            ["Tahrongi_Canyon"] = { T.npc("Sharara", { key = "SHARARA" }) },
+        },
+        steps = { { SHARARA = LQS.dialog({ event = { "Hello." } }) } },
+    }), "a shared key should refuse the quest")
+end), { allowErrors = true })
+
 return T
