@@ -746,6 +746,44 @@ function S.moveTo(entity, zoneIdOrName)
 end
 
 -----------------------------------
+-- Module load order: LSB expands an init.txt folder into a std::set<path>, which
+-- compares paths component by component. So "LQS/x.lua" sorts before "LQS.lua"
+-- ("LQS" < "LQS.lua"), and a folder's files load before a file named like it.
+-----------------------------------
+function S.moduleOrder(dir)
+    local files = {}
+    local p = io.popen("find '" .. dir .. "' -name '*.lua' -type f 2>/dev/null")
+
+    for line in p:lines() do
+        table.insert(files, line)
+    end
+
+    p:close()
+
+    local function parts(path)
+        local list = {}
+        for part in path:gmatch("[^/]+") do
+            table.insert(list, part)
+        end
+        return list
+    end
+
+    table.sort(files, function(a, b)
+        local pa, pb = parts(a), parts(b)
+
+        for i = 1, math.max(#pa, #pb) do
+            if pa[i] == nil then return true end
+            if pb[i] == nil then return false end
+            if pa[i] ~= pb[i] then return pa[i] < pb[i] end
+        end
+
+        return false
+    end)
+
+    return files
+end
+
+-----------------------------------
 -- Module system (modules/module_utils.lua)
 -----------------------------------
 S.overrides = {}

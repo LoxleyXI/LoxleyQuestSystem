@@ -17,7 +17,9 @@ if filter and filter:match("^@") then
     local lib = os.getenv("LQS_LIB") or (here .. "../../lib")
 
     S.boot({ bindings = { lib .. "/../cpp/lqs_util.cpp" } })
-    dofile(lib .. "/LQS.lua")
+    for _, file in ipairs(S.moduleOrder(lib)) do
+        dofile(file)
+    end
 
     local T = dofile(here .. "tests.lua")
     local name = filter:sub(2)

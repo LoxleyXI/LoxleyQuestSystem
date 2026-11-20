@@ -500,7 +500,15 @@ function W.revisit(quest, player)
         if entry.kind == "item" then items = items + 1 end
     end
 
-    for zoneName, list in pairs(quest.entities or {}) do
+    local zoneNames = {}
+    for zoneName in pairs(quest.entities or {}) do
+        table.insert(zoneNames, zoneName)
+    end
+    table.sort(zoneNames)
+
+    for _, zoneName in ipairs(zoneNames) do
+        local list = quest.entities[zoneName]
+
         for _, info in ipairs(list) do
             if info.type ~= xi.objType.MOB then
                 local live = findLive(zoneName, info.name)

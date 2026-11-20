@@ -58,22 +58,17 @@ local function finish(status, label, notes)
     end
 end
 
--- LQS itself, as init.txt loads it
+-- LQS itself, in the order LSB loads the lib folder
 local function loadLib()
-    dofile(lib .. "/LQS.lua")
+    local files = S.moduleOrder(lib)
 
-    local p = io.popen('ls "' .. lib .. '/LQS" "' .. lib .. '/LQS/util" 2>/dev/null')
-    local dir = lib .. "/LQS/"
-
-    for line in p:lines() do
-        if line:match(":$") then
-            dir = line:sub(1, -2) .. "/"
-        elseif line:match("%.lua$") then
-            dofile(dir .. line)
-        end
+    if #files == 0 then
+        error("no Lua files in " .. lib)
     end
 
-    p:close()
+    for _, file in ipairs(files) do
+        dofile(file)
+    end
 end
 
 -- Server files that load before LQS (LQS_PRELOAD: files or folders, ':' separated).
@@ -81,17 +76,13 @@ end
 local preloadNotes = {}
 
 for path in (os.getenv("LQS_PRELOAD") or ""):gmatch("[^:]+") do
-    local p = io.popen("find '" .. path .. "' -name '*.lua' -type f 2>/dev/null | sort")
-
-    for file in p:lines() do
+    for _, file in ipairs(S.moduleOrder(path)) do
         local okLoad, loadErr = xpcall(function() dofile(file) end, debug.traceback)
 
         if not okLoad then
             table.insert(preloadNotes, "preload " .. file:match("[^/]+$") .. ": " .. tostring(loadErr):match("^[^\n]*"))
         end
     end
-
-    p:close()
 end
 
 local ok, err = xpcall(loadLib, debug.traceback)
@@ -352,7 +343,7 @@ for _, quest in ipairs(W.quests) do
 
             if e.kind == "var" or (e.kind == "item" and not e.walker) or e.kind == "keyitem" or e.kind == "gil" or e.kind == "currency" or e.kind == "exp" or e.kind == "error" then
                 table.insert(lines, string.format("%s %s %s %s", e.kind, tostring(e.var or e.item or e.ki or e.currency or ""), tostring(e.value or e.qty or e.amount or ""), e.text or ""))
-            elseif verbose and (e.kind == "text" or e.kind == "trigger" or e.kind == "choose" or e.kind == "trade" or e.kind == "death" or e.kind == "spawn" or e.kind == "print") then
+            elseif (verbose or recordDir) and (e.kind == "text" or e.kind == "trigger" or e.kind == "choose" or e.kind == "trade" or e.kind == "death" or e.kind == "spawn" or e.kind == "print") then
                 table.insert(lines, string.format("  [%s] %s", e.kind, tostring(e.text or e.entity or e.option or "")))
             end
         end
