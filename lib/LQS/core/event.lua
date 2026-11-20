@@ -386,6 +386,11 @@ end
 
 -- Returns the total delay for event
 LQS.eventDelay = function(tbl)
+    -- A function in place of an event runs at once; it has no length of its own
+    if type(tbl) == "function" then
+        return 0
+    end
+
     if type(tbl) ~= "table" then
         print("[LQS] Event table missing.")
         return 0

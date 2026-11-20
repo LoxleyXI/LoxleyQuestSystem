@@ -723,4 +723,22 @@ test("validate: positional menu options refuse the quest", wrap(function()
     }), "{ label, true } should refuse the quest")
 end), { allowErrors = true })
 
+
+test("menu: an option whose event is a function runs it, without a missing-event print", wrap(function()
+    local ran = false
+    T.quest({
+        entities = { [zoneName] = { T.npc("Altar") } },
+        steps = { { Altar = LQS.menu({ title = "Offer?", options = { { "No." }, { "Yes.", event = function(player, npc) ran = true end, step = false } } }) } },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Altar") T.run()
+    T.choose(p, 2) T.run()
+    T.ok(ran, "the function ran")
+
+    for _, e in ipairs(S.log) do
+        T.ok(not (e.kind == "print" and e.text:find("Event table missing", 1, true)), "no missing-event print")
+    end
+end))
+
 return T
