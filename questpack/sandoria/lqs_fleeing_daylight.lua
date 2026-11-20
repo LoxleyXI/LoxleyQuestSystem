@@ -68,7 +68,7 @@ LQS.add(m, {
         {
             check       = LQS.checks({ level = 15 }),
             [Tenebraux] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     "Who disturbs my peace? Wait. Do not come closer.",
@@ -88,7 +88,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required,
                     reward   = info.reward,
                     step     = true,

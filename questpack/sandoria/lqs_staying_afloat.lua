@@ -69,7 +69,7 @@ LQS.add(m, {
     {
         {
             [Archimedes] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     "Greetings. I'm in need of acorns for a... a very important experiment.",
@@ -89,7 +89,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required,
                     reward   = info.reward,
                     step     = false,

@@ -64,7 +64,7 @@ LQS.add(m, {
         {
             check          = LQS.checks({ level = 5 }),
             [MightyHammer] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     "Forging darksteel is busy work, don't have time to source the materials.",
@@ -84,7 +84,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     step     = false,
                     tally    = info.tally,
                     exchange = exchange,

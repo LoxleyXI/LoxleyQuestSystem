@@ -88,7 +88,7 @@ LQS.add(m, {
     {
         {
             [Couquillard] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     "One particular customer keeps eating all our hare meat!",
@@ -108,7 +108,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required,
                     reward   = info.reward,
                     step     = false,

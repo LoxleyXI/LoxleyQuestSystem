@@ -69,7 +69,7 @@ LQS.add(m, {
         {
             check            = LQS.checks({ level = 15 }),
             [RumblingValley] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     "Can you hear it? The call of the dust and the voice of the wind?",
@@ -88,7 +88,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required,
                     reward   = info.reward,
                     step     = true,

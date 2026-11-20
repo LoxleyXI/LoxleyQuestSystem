@@ -72,7 +72,7 @@ LQS.add(m, {
         {
             check          = LQS.checks({ level = 5 }),
             [PulukiCuluki] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     "Our feathered foes are overstepping their bounds.",
@@ -97,7 +97,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required,
                     reward   = info.reward,
                     step     = false,

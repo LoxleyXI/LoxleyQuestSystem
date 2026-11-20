@@ -75,9 +75,9 @@ LQS.add(m, {
     {
         {
             [Tracks] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 check = { level = 10 },
-                spawn = Shu,
+                as    = Shu,
                 event =
                 {
                     "Hearrrd about wild rabbit tails? I've been told they brrrring good luck.",
@@ -93,17 +93,17 @@ LQS.add(m, {
             {
                 onTrigger = LQS.dialog({
                     step  = false,
-                    spawn = Shu,
+                    as    = Shu,
                     event =
                     {
                         "Brrr~ing me a wild rabbit tail and I'll rewarrr~d you.",
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = 542, -- Wild Rabbit Tail
                     reward   = info.reward,
-                    spawn    = Shu,
+                    as       = Shu,
                     declined = { "Brrr~ing me a wild rabbit tail and I'll rewarrr~d you." },
                     accepted =
                     {
@@ -115,7 +115,7 @@ LQS.add(m, {
         },
         {
             [Tracks] = LQS.dialog({
-                name  = "",
+                object = true,
                 step  = false,
                 event =
                 {

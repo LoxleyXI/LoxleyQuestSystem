@@ -101,7 +101,7 @@ LQS.add(m, {
         {
             check            = LQS.checks({ level = 10 }),
             [ConchataPotata] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     { emote = xi.emote.THINK },
@@ -145,7 +145,7 @@ LQS.add(m, {
         {
             [HareTracks]     = LQS.nothingElse(),
             [ConchataPotata] = LQS.dialog({
-                quest  = info.name,
+                complete  = info.name,
                 reward = info.reward[1],
                 event  =
                 {
@@ -162,7 +162,7 @@ LQS.add(m, {
         {
             check            = LQS.checks({ level = 12 }),
             [ConchataPotata] = LQS.dialog({
-                quest = info.name2,
+                accept = info.name2,
                 event =
                 {
                     "Do you have any plans to visit the Fumaroles again soon?",
@@ -184,7 +184,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name2,
+                    complete    = info.name2,
                     required = info.required,
                     reward   = info.reward[2],
                     step     = false,

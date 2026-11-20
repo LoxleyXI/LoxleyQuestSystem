@@ -81,7 +81,7 @@ LQS.add(m, {
         {
             check = LQS.checks({ level = 50 }),
             [Vermali] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     { emote = xi.emote.FUME },
@@ -107,7 +107,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required[1],
                     reward   = info.reward[1],
                     tally    = info.tally,
@@ -137,7 +137,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     step     = false,
                     required = info.required[2],
                     reward   = info.reward[2],

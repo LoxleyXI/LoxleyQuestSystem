@@ -115,7 +115,7 @@ LQS.add(m, {
         },
         {
             [Erbelie] = LQS.menu({
-                quest   = info.name,
+                accept   = info.name,
                 title   = "Dhalmels in Sarutabaruta?",
                 options =
                 {
@@ -159,7 +159,7 @@ LQS.add(m, {
         {
             [DhalmelBones] = LQS.nothingElse(),
             [Erbelie]  = LQS.dialog({
-                quest  = info.name,
+                complete  = info.name,
                 reward = info.reward[1],
                 event  =
                 {
@@ -174,7 +174,7 @@ LQS.add(m, {
         {
             check     = LQS.checks({ level = 12 }),
             [Erbelie] = LQS.dialog({
-                quest  = info.name2,
+                accept  = info.name2,
                 event  =
                 {
                     "A dhalmel's favorite treat is papaka grass.",
@@ -194,7 +194,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name2,
+                    complete    = info.name2,
                     required = info.required,
                     reward   = info.reward[2],
                     step     = false,

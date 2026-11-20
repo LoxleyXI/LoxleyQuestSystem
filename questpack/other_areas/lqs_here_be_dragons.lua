@@ -80,7 +80,7 @@ LQS.add(m, {
         {
             check     = LQS.checks({ level = 40 }),
             [Khartes] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     { delay = 500 },
@@ -125,7 +125,7 @@ LQS.add(m, {
             [MinersHelmet] = LQS.nothingElse(),
             [Khartes]      = LQS.dialog({
                 reward = info.reward,
-                quest  = info.name,
+                complete  = info.name,
                 event  =
                 {
                     "Woah! You really fought a dragon all by yourself!?",

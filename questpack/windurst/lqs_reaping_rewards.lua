@@ -69,7 +69,7 @@ LQS.add(m, {
         {
             check        = LQS.checks({ level = 5 }),
             [FhaMhakyaa] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     { emote = xi.emote.HARVESTING },
@@ -96,7 +96,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required,
                     reward   = info.reward,
                     declined =

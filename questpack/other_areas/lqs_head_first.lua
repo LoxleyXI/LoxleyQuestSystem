@@ -77,8 +77,8 @@ LQS.add(m, {
         {
             check           = LQS.checks({ level = 10 }),
             [HumeFootprint] = LQS.dialog({
-                quest = info.name,
-                spawn = Leidl,
+                accept = info.name,
+                as    = Leidl,
                 event =
                 {
                     { entity  = Leidl, emote = xi.emote.SHOCKED },
@@ -103,17 +103,17 @@ LQS.add(m, {
             {
                 onTrigger = LQS.dialog({
                     step  = false,
-                    spawn = Leidl,
+                    as    = Leidl,
                     event =
                     {
                         "Please bring back a magicked skull and I'll make it worth your time!",
                     },
                 }),
                 onTrade   = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required,
                     reward   = info.reward,
-                    spawn    = Leidl,
+                    as       = Leidl,
                     declined = { "Please bring back a magicked skull and I'll make it worth your time!" },
                     accepted =
                     {
@@ -132,7 +132,7 @@ LQS.add(m, {
         {
             [HumeFootprint] = LQS.dialog({
                 step  = false,
-                name  = "",
+                object = true,
                 event =
                 {
                     "Whoever was here is long gone..."

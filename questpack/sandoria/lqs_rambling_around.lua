@@ -114,7 +114,7 @@ LQS.add(m, {
         },
         {
             [Glenda] = LQS.menu({
-                quest   = info.name,
+                accept   = info.name,
                 title   = "Rams in Ronfaure?",
                 options =
                 {
@@ -161,7 +161,7 @@ LQS.add(m, {
         {
             [RamWool] = LQS.nothingElse(),
             [Glenda]  = LQS.dialog({
-                quest  = info.name,
+                complete  = info.name,
                 reward = info.reward[1],
                 event  =
                 {
@@ -173,7 +173,7 @@ LQS.add(m, {
         {
             check    = LQS.checks({ level = 12 }),
             [Glenda] = LQS.dialog({
-                quest  = info.name2,
+                accept  = info.name2,
                 event  =
                 {
                     "Thanks for helping me out by investigating those rams.",
@@ -196,7 +196,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name2,
+                    complete    = info.name2,
                     required = info.required,
                     reward   = info.reward[2],
                     step     = false,

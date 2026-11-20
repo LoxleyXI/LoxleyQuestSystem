@@ -82,7 +82,7 @@ LQS.add(m, {
     {
         {
             [Aeolia] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     { emote = xi.emote.SHOCKED },

@@ -100,7 +100,7 @@ LQS.add(m, {
     {
         {
             [Moyeyo] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     { emote = xi.emote.FUME },

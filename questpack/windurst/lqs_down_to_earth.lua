@@ -76,7 +76,7 @@ LQS.add(m, {
     {
         {
             [HerminHarmon] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     "Have you ever seen a falling star?",
@@ -101,7 +101,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     tally    = info.tally,
                     step     = false,
                     exchange = info.exchange,

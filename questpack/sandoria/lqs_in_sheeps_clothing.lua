@@ -72,7 +72,7 @@ LQS.add(m, {
         {
             check        = LQS.checks({ level = 5 }),
             [ChillyWolf] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     { emote = xi.emote.STAGGER },
@@ -92,7 +92,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     step     = false,
                     required = info.required,
                     reward   = info.reward,

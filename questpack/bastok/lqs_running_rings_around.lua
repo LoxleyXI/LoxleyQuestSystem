@@ -92,7 +92,7 @@ LQS.add(m, {
     {
         {
             [Verona] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     { emote = xi.emote.THINK },

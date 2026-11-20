@@ -73,7 +73,7 @@ LQS.add(m, {
     {
         {
             [ShiningStone] = LQS.dialog({
-                quest = info.name,
+                accept = info.name,
                 event =
                 {
                     "What? Never seen a Galkachemist before?",
@@ -95,7 +95,7 @@ LQS.add(m, {
                     },
                 }),
                 onTrade = LQS.trade({
-                    quest    = info.name,
+                    complete    = info.name,
                     required = info.required.item,
                     reward   = info.reward,
                     step     = false,
