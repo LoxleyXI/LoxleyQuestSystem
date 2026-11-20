@@ -412,7 +412,11 @@ for _, quest in ipairs(W.quests) do
 
         if recordDir then
             -- var and name: quests may share a var (one quest per nation, say)
-            local name = ((quest.info.var or "") .. "__" .. (quest.info.name or "")):gsub("[^%w]+", "_")
+            local function clean(str)
+                return (tostring(str or ""):gsub("[^%w]+", "_"))
+            end
+
+            local name = clean(quest.info.var) .. "__" .. clean(quest.info.name)
             local f = io.open(recordDir .. "/" .. name .. ".txt", "w")
             f:write(table.concat(lines, "\n") .. "\n")
             f:close()
