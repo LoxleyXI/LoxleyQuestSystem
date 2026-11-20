@@ -28,13 +28,13 @@ LQS._ = LQS._ or {}
 
 local P = LQS._
 
--- An option in either form, as { label, event, reward, spawn }
+-- An option: { "Label", event = ..., reward = ..., spawn = true, step = false }
 local function optionOf(opt)
     return {
         label  = opt.label or opt[1],
-        event  = opt.event or ((type(opt[2]) == "table" or type(opt[2]) == "function") and opt[2] or nil),
-        reward = opt.reward or opt[3],
-        spawn  = opt.spawn or opt[2] == true,
+        event  = opt.event,
+        reward = opt.reward,
+        spawn  = opt.spawn,
         step   = opt.step,
     }
 end

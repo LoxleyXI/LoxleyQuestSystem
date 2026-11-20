@@ -133,7 +133,7 @@ LQS.add(m, {
                     },
                     {
                         "Yes",
-                        true,
+                        spawn = true,
                     },
                 },
             }),

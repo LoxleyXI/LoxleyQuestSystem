@@ -112,7 +112,7 @@ LQS.add(m, {
                     },
                     {
                         "Let's take a closer look...",
-                        true,
+                        spawn = true,
                     },
                 },
             }),

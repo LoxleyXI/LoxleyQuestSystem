@@ -123,7 +123,7 @@ LQS.add(m, {
                     },
                     {
                         "Let's find out.",
-                        {
+                        event = {
                             "I've been told that rams used to be seen in southern Ronfaure.",
                             " I hope you're able to find something.",
                         },
@@ -149,7 +149,7 @@ LQS.add(m, {
                     },
                     {
                         "Yes",
-                        true,
+                        spawn = true,
                     },
                 },
             }),

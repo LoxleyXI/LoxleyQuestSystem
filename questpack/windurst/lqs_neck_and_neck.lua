@@ -124,7 +124,7 @@ LQS.add(m, {
                     },
                     {
                         "Let's neck it out.",
-                        { "Thank you. Let me know what you find." },
+                        event = { "Thank you. Let me know what you find." },
                     },
                 },
             }),
@@ -147,7 +147,7 @@ LQS.add(m, {
                     },
                     {
                         "Yes",
-                        true,
+                        spawn = true,
                     },
                 },
             }),

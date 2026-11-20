@@ -274,7 +274,14 @@ function P.validateQuest(tbl)
 
         for i, opt in ipairs(obj.options or {}) do
             if type(opt) == "table" then
-                markEvent(opt.event or (type(opt[2]) == "table" and opt[2] or nil), path .. ".options[" .. i .. "]", entity)
+                local where = path .. ".options[" .. i .. "]"
+
+                -- 2.x options were positional: { label, event or true, reward }
+                if opt[2] ~= nil or opt[3] ~= nil then
+                    err(where, "takes named fields after the label: event =, spawn = true, reward =")
+                end
+
+                markEvent(opt.event, where, entity)
             end
         end
     end

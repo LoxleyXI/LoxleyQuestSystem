@@ -309,7 +309,7 @@ test("menu: an option's item reward is that item", wrap(function()
             title   = "Take one?",
             options = {
                 { "No thanks." },
-                { "Yes please.", { "Here you go." }, 4198 },
+                { "Yes please.", event = { "Here you go." }, reward = 4198 },
             },
         }) } },
     })
@@ -332,7 +332,7 @@ local function defeatQuest(defeat, handlerCheck)
         entities = { [zoneName] = { T.npc("Spot"), T.mob("Beast") } },
         steps = {
             {
-                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", true } } }),
+                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", spawn = true } } }),
                 Beast = handlerCheck and { onMobDeath = defeat, check = handlerCheck } or defeat,
             },
         },
@@ -382,7 +382,7 @@ test("defeat: an entity tally counts once per member in a party", wrap(function(
         entities = { [zoneName] = { T.npc("Spot"), T.mob("Beast", { tally = "[UNIT]TALLY" }) } },
         steps = {
             {
-                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", true } } }),
+                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", spawn = true } } }),
                 Beast = LQS.defeat({ mobs = { "Beast" } }),
             },
         },
@@ -639,7 +639,7 @@ test("defeat helper: only party members not on the step get it", wrap(function()
         steps =
         {
             {
-                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", true } } }),
+                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", spawn = true } } }),
                 Beast = LQS.defeat({ mobs = { "Beast" }, helper = 4198 }),
             },
         },
@@ -714,5 +714,13 @@ test("trade: a trade that only spawns says nothing and logs nothing", wrap(funct
         T.ok(not (e.kind == "print" and e.text:find("Event table missing", 1, true)), "no missing-event print")
     end
 end))
+
+
+test("validate: positional menu options refuse the quest", wrap(function()
+    T.ok(refused({
+        entities = { [zoneName] = { T.npc("Chooser") } },
+        steps = { { Chooser = LQS.menu({ title = "Go?", options = { { "No." }, { "Yes.", true } } }) } },
+    }), "{ label, true } should refuse the quest")
+end), { allowErrors = true })
 
 return T
