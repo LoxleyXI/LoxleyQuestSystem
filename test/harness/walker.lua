@@ -239,6 +239,24 @@ local function newTrade(items)
     function trade:getItemId(i) return self.slots[i + 1] and self.slots[i + 1].id or 0 end
     function trade:getSlotQty(i) return self.slots[i + 1] and self.slots[i + 1].qty or 0 end
     function trade:getSlotItem(i) return S.newEntity({ name = "item" }) end
+
+    -- The item in a slot: a plain one, no augments or extra data
+    function trade:getItem(i)
+        local slot = self.slots[i + 1]
+
+        if slot == nil then
+            return nil
+        end
+
+        local item = {}
+        function item:getID() return slot.id end
+        function item:getQuantity() return slot.qty end
+        function item:getAugment(n) return { 0, 0 } end
+        function item:getExData() local t = {} for b = 0, 23 do t[b] = 0 end return t end
+        function item:isType(t) return false end
+
+        return item
+    end
     function trade:getItemCount()
         local n = 0
         for _, s in ipairs(self.slots) do n = n + s.qty end
