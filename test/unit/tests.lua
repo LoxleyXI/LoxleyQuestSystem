@@ -741,4 +741,13 @@ test("menu: an option whose event is a function runs it, without a missing-event
     end
 end))
 
+
+test("validate: a near miss of an entity field is named; a quest's own data is not", wrap(function()
+    T.ok(LQS._.nearField("groupzoneId", { groupZoneId = true, look = true }) == "groupZoneId", "case slip")
+    T.ok(LQS._.nearField("packetNmae", { packetName = true }) == "packetName", "transposed letters")
+    T.ok(LQS._.nearField("apMult", { groupZoneId = true, packetName = true, look = true }) == nil, "own data")
+    T.ok(LQS._.nearField("buff", { look = true, pos = true }) == nil, "short own data")
+    T.ok(LQS._.nearField("back", { base = true }) == nil, "two slips in a short name is its own word")
+end))
+
 return T

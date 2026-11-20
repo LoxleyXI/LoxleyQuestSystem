@@ -86,6 +86,54 @@ local RENAMED =
 
 -- Quest names and vars across loaded quests, to catch duplicates (a reload of the
 -- same quest replaces its own entry)
+-- A known field this one is likely a misspelling of: same letters ignoring
+-- case, or one or two edits away (for names long enough to tell)
+P.nearField = function(key, known)
+    if type(key) ~= "string" or #key < 4 then
+        return nil
+    end
+
+    local function distance(a, b)
+        if math.abs(#a - #b) > 2 then
+            return 3
+        end
+
+        local prev = {}
+
+        for j = 0, #b do
+            prev[j] = j
+        end
+
+        for i = 1, #a do
+            local cur = { [0] = i }
+
+            for j = 1, #b do
+                local cost = a:sub(i, i) == b:sub(j, j) and 0 or 1
+                cur[j] = math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost)
+            end
+
+            prev = cur
+        end
+
+        return prev[#b]
+    end
+
+    -- Short names allow one slip, longer ones two
+    local best, bestDistance = nil, #key <= 5 and 2 or 3
+
+    for field in pairs(known) do
+        if type(field) == "string" and #field >= 4 then
+            local d = string.lower(field) == string.lower(key) and 0 or distance(string.lower(key), string.lower(field))
+
+            if d < bestDistance then
+                best, bestDistance = field, d
+            end
+        end
+    end
+
+    return best
+end
+
 P.loadedVars  = P.loadedVars or {}
 P.loadedNames = P.loadedNames or {}
 
@@ -157,8 +205,13 @@ function P.validateQuest(tbl)
                 if RENAMED[key] then
                     err(path .. "." .. key, "moved to " .. RENAMED[key])
                 elseif not ENTITY_KEYS[key] then
-                    -- Quests keep their own data on entities too; a typo shows up here
-                    warn(path .. "." .. key, "not an LQS entity field")
+                    -- Quests keep their own data on entities; only a near miss of an
+                    -- LQS field is worth a word (groupzoneId for groupZoneId, say)
+                    local near = P.nearField(key, ENTITY_KEYS)
+
+                    if near then
+                        warn(path .. "." .. key, string.format("not an LQS entity field; did you mean '%s'?", near))
+                    end
                 end
             end
 
@@ -350,12 +403,22 @@ function P.validateQuest(tbl)
         end
     end
 
-    for name, e in pairs(names) do
-        if not (used[e.name] or (e.key and used[e.key])) and e.type ~= xi.objType.MOB and e.onTrigger == nil then
-            -- A plain NPC with only a default is fine; note it in case it's a typo
-            if e.default == nil and e.dialog == nil then
-                warn(string.format("entities[%q]", name), "no step uses it and it has no default")
-            end
+    local reported = {}
+
+    for _, e in pairs(names) do
+        if
+            not reported[e] and
+            not (used[e.name] or (e.key and used[e.key])) and
+            e.type ~= xi.objType.MOB and
+            e.onTrigger == nil and
+            e.default == nil and
+            e.dialog == nil and
+            -- Scenery and extras that events or code bring out
+            not (e.hidden or e.untargetable or e.hideName)
+        then
+            -- A plain NPC nobody can reach: likely a typo in a step
+            reported[e] = true
+            warn(string.format("entities[%q]", e.key or e.name), "no step uses it and it has no default")
         end
     end
 

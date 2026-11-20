@@ -238,48 +238,6 @@ if #W.quests == 0 then
 end
 
 -----------------------------------
--- Static checks
------------------------------------
-local function lint(quest)
-    local problems = {}
-    local names    = {}
-
-    if not quest.info or not quest.info.var then
-        table.insert(problems, "info.var is missing")
-    end
-
-    for zoneName, list in pairs(quest.entities or {}) do
-        for _, e in ipairs(list) do
-            names[e.key or e.name] = true
-
-            local shown = e.packetName or e.name
-
-            if type(shown) == "string" and #shown > 15 then
-                table.insert(problems, string.format("name '%s' is %d characters (the client shows 15)", shown, #shown))
-            end
-
-            if e.pos == nil then
-                table.insert(problems, string.format("entity '%s' has no pos", e.name))
-            end
-
-            if e.type == xi.objType.MOB and e.base == nil and e.groupId == nil then
-                table.insert(problems, string.format("mob '%s' has no base or groupId", e.name))
-            end
-        end
-    end
-
-    for index, step in ipairs(quest.steps or {}) do
-        for key in pairs(step) do
-            if key ~= "check" and not names[key] then
-                table.insert(problems, string.format("step %d names '%s', which is not an entity", index, key))
-            end
-        end
-    end
-
-    return problems
-end
-
------------------------------------
 -- Walk each quest in the file
 -----------------------------------
 local exitCode = 0
@@ -288,10 +246,6 @@ for _, quest in ipairs(W.quests) do
     local label = string.format("%s :: %s", questFile, quest.info and quest.info.name or "?")
     local notes = {}
     local failed = false
-
-    for _, problem in ipairs(lint(quest)) do
-        table.insert(notes, "lint: " .. problem)
-    end
 
     -- Load-time faults from LQS's own validation: errors fail the quest
     for _, text in ipairs(loadNotes) do
