@@ -104,7 +104,7 @@ LQS.add(m, {
                     accepted =
                     {
                         { emote = xi.emote.YES },
-                        { fmt = "That's better, but not enough. So far, I have {} sheepskins.", var = info.tally },
+                        { say = "That's better, but not enough. So far, I have {} sheepskins.", var = info.tally },
                         " Get more sheepskins and I'll keep paying.",
                     },
                 }),

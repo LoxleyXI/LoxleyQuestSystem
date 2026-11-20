@@ -95,7 +95,7 @@ LQS.add(m, {
                     accepted =
                     {
                         "All right!",
-                        { fmt = "I'll add this to the {} you've already brought me. Here's your payment.", var = info.tally },
+                        { say = "I'll add this to the {} you've already brought me. Here's your payment.", var = info.tally },
                     },
                 }),
             },

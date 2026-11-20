@@ -151,7 +151,7 @@ LQS.add(m, {
                     {
                         { emote = xi.emote.CLAP },
                         "That's the stuff. Get those birds!!",
-                        { fmt = " You've handed me a total of {} beaks.", var = info.tally },
+                        { say = " You've handed me a total of {} beaks.", var = info.tally },
                         "Bring me more, soldier.",
                     },
                 }),

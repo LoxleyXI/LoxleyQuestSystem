@@ -108,7 +108,7 @@ LQS.add(m, {
                     {
                         "Thanks! Now I can get back to work.",
                         { emote = xi.emote.CHEER },
-                        { fmt = " So far, you've helped me brew {} potions.", var = info.tally },
+                        { say = " So far, you've helped me brew {} potions.", var = info.tally },
                         "Bring more lizard tails and I'll gladly do business again!",
                     },
                 }),

@@ -127,7 +127,7 @@ LQS.add(m, {
             [Verona] = LQS.dialog({
                 event =
                 {
-                    { emotion = "hands over the new ring." },
+                    { narrate = "hands over the new ring." },
                     { emote = xi.emote.DISGUSTED },
                     "Oh, no, no, no! This ring clashes too much with my shoes!",
                     " Please go back to Carmelide's and see what else they have.",
@@ -150,7 +150,7 @@ LQS.add(m, {
             [Verona] = LQS.dialog({
                 event =
                 {
-                    { emotion = "hands over the new ring." },
+                    { narrate = "hands over the new ring." },
                     { emote = xi.emote.DISGUSTED },
                     "Hmmm... this ring is too shiny.",
                     " Go get a different one for me to try on.",
@@ -173,7 +173,7 @@ LQS.add(m, {
             [Verona] = LQS.dialog({
                 event =
                 {
-                    { emotion = "hands over the new ring." },
+                    { narrate = "hands over the new ring." },
                     { emote = xi.emote.FUME },
                     "This... monstrosity?! Absolutely not. This ring is hideous!",
                     " Go get a different one for me to try on.",
@@ -197,7 +197,7 @@ LQS.add(m, {
                 reward = info.reward,
                 event  =
                 {
-                    { emotion = "hands over the new ring." },
+                    { narrate = "hands over the new ring." },
                     { emote = xi.emote.PRAISE },
                     "PERFECT!~ WONDERFUL!~",
                     " This is it! This is the one!",

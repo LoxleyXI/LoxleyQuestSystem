@@ -114,7 +114,7 @@ LQS.add(m, {
                     {
                         { emote = xi.emote.CLAP },
                         "Great work, adventurer. Keep it up.",
-                        { fmt = " That makes a grand total of {} bugs eliminated.", var = info.tally },
+                        { say = " That makes a grand total of {} bugs eliminated.", var = info.tally },
                     },
                 }),
             },

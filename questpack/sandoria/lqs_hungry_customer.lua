@@ -121,7 +121,7 @@ LQS.add(m, {
                     {
                         "Phew, thank you. Now I can serve my customers again!",
                         { entity = RumblingBelly, emote = xi.emote.LAUGH },
-                        { fmt = " So far, that makes {} hare dishes served, all thanks to you.", var = info.tally },
+                        { say = " So far, that makes {} hare dishes served, all thanks to you.", var = info.tally },
                     },
                 }),
             },

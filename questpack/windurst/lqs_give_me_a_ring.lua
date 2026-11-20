@@ -127,8 +127,8 @@ LQS.add(m, {
             [DimSparkle] = LQS.dialog({
                 event =
                 {
-                    { animation = 48, target = "player", duration = 3000 }, -- Crouch down
-                    { emotion = "digs in the dirt and finds Moyeyo's ring!" },
+                    { pose      = 48, target = "player", duration = 3000 }, -- Crouch down
+                    { narrate = "digs in the dirt and finds Moyeyo's ring!" },
                 },
             }),
         },

@@ -111,7 +111,7 @@ LQS.add(m, {
                         { emote = xi.emote.SALUTE },
                         "This is progress but many more Yagudo lie at our border.",
                         { delay = 1000 },
-                        { fmt = "So far you've brought me {} feathers.", var = info.tally },
+                        { say = "So far you've brought me {} feathers.", var = info.tally },
                         " Keep up the excellentaru work!",
                     },
                 }),

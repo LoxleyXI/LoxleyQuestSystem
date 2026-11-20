@@ -100,7 +100,7 @@ LQS.add(m, {
                     },
                     accepted =
                     {
-                        { fmt = "Thank you. So far you've brought me {} acorns.", var = info.tally },
+                        { say = "Thank you. So far you've brought me {} acorns.", var = info.tally },
                         " Excuse me, one moment.",
                         { entity = Archimedes, face = 128 },
                         { delay = 2000 },

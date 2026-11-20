@@ -72,7 +72,6 @@ LQS.add(m, {
                 accept = info.name,
                 event =
                 {
-                    { noturn = true },
                     { entity = Aesculian, emote = xi.emote.LOGGING },
                     { delay  = 2000 },
                     { entity = Aesculian, face  = "player" },
@@ -119,7 +118,6 @@ LQS.add(m, {
                 step  = false,
                 event =
                 {
-                    { noturn = true },
                     { entity = Aesculian, emote = xi.emote.LOGGING },
                     "A fine day for logging!",
                 },

@@ -105,7 +105,7 @@ LQS.add(m, {
                     accepted =
                     {
                         { emote = xi.emote.THINK },
-                        { fmt = "Hmmm... These are good samples. That makes {} feathers.", var = info.tally },
+                        { say = "Hmmm... These are good samples. That makes {} feathers.", var = info.tally },
                         " Here's your reward.",
                     },
                 }),

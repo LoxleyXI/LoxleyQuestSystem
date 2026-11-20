@@ -119,8 +119,8 @@ LQS.add(m, {
             [FlowerBed] = LQS.dialog({
                 event =
                 {
-                    { animation = 48, target = "player", duration = 3000 }, -- Crouch down
-                    { emotion   = "rummages through the Flower Bed and finds Aeolia's ring." },
+                    { pose      = 48, target = "player", duration = 3000 }, -- Crouch down
+                    { narrate   = "rummages through the Flower Bed and finds Aeolia's ring." },
                 },
             }),
         },

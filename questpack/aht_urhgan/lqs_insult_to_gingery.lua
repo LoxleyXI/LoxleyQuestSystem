@@ -119,7 +119,7 @@ LQS.add(m, {
                     {
                         { emote = xi.emote.YES },
                         "Thanks. This ought to really give my next dish some extra kick!",
-                        { fmt = " So far, you've brought me {} ginger roots!", var = info.tally },
+                        { say = " So far, you've brought me {} ginger roots!", var = info.tally },
                         "Here's a little something for your time.",
                     },
                 }),
@@ -152,7 +152,7 @@ LQS.add(m, {
                     {
                         { emote = xi.emote.YES },
                         "Thanks. This ought to really give my next dish some extra kick!",
-                        { fmt = " So far, you've brought me {} ginger roots!", var = info.tally },
+                        { say = " So far, you've brought me {} ginger roots!", var = info.tally },
                         "Here's a little something for your time.",
                     },
                 }),

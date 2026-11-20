@@ -208,7 +208,7 @@ LQS.add(m, {
                     accepted =
                     {
                         { emote = xi.emote.BOW },
-                        { fmt = "Thanks for these lanolin cubes. That makes {}.", var = info.tally },
+                        { say = "Thanks for these lanolin cubes. That makes {}.", var = info.tally },
                         " We can always use more, please keep bringing them.",
                     },
                 }),

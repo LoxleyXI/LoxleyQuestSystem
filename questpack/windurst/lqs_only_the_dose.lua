@@ -105,7 +105,7 @@ LQS.add(m, {
                     accepted =
                     {
                         { emote = xi.emote.YES },
-                        { fmt = "Yes, this is what I need. That makes %u giant stingerrrs.", var = info.tally },
+                        { say = "Yes, this is what I need. That makes %u giant stingerrrs.", var = info.tally },
                         " Brrrring more and I'll pay.",
                     },
                 }),
