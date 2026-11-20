@@ -168,6 +168,23 @@ LQS.add = function(source, tbl)
         return false
     end
 
+    -- Validate; errors refuse the quest unless settings.VALIDATE is "warn"
+    local problems, warnings = P.validateQuest(tbl)
+
+    for _, text in ipairs(warnings) do
+        print(fmt("[LQS] {}: warning: {}", questLabel, text))
+    end
+
+    for _, text in ipairs(problems) do
+        print(fmt("[LQS] {}: {}", questLabel, text))
+    end
+
+    if #problems > 0 and (LQS.settings == nil or LQS.settings.VALIDATE ~= "warn") then
+        return false
+    end
+
+    P.registerLoaded(tbl)
+
     tbl.handlers  = handlers
     tbl.quest     = { name = tbl.info.name, var = tbl.info.var, info = tbl.info }
     tbl.infoCheck = P.compileCheck(tbl.info.check)

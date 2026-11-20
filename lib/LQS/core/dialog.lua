@@ -26,7 +26,7 @@ local P = LQS._
 LQS.dialog = function(obj)
     local check = P.compileCheck(obj.check)
 
-    return P.handler("dialog", {
+    return P.handler("dialog", { obj = obj,
         onTrigger = function(ctx)
             local player, npc = ctx.player, ctx.npc
 

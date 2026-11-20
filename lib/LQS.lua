@@ -30,6 +30,8 @@ LQS.settings =
     -- Respawn of spawners
     RESPAWN = 180000, -- 3 minutes
     DEBUG   = false,  -- Enable debugging mode
+    -- "refuse": a quest with faults doesn't load. "warn": it loads anyway (faults printed)
+    VALIDATE = "refuse",
 }
 
 -- Pull optional setting overrides from LSB map settings

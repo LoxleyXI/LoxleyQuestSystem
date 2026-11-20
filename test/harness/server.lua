@@ -804,6 +804,16 @@ function S.moveTo(entity, zoneIdOrName)
     entity.zone = zone
 end
 
+-- From here on a misspelt xi.item.NAME is an error, not a silent nil
+-- (switched on just before the quest file loads, after the server's own files)
+function S.strictItems()
+    if xi.item then
+        setmetatable(xi.item, { __index = function(_, key)
+            error("xi.item." .. tostring(key) .. " does not exist", 2)
+        end })
+    end
+end
+
 -----------------------------------
 -- Module load order: LSB expands an init.txt folder into a std::set<path>, which
 -- compares paths component by component. So "LQS/x.lua" sorts before "LQS.lua"

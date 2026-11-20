@@ -20,6 +20,7 @@
 --     step     = false,
 --     accept   = "Quest Name",       -- or complete = / mission =
 --     after    = function(ctx) end,
+--     onChoice = function(ctx, index) end,  -- or handle every pick yourself
 -- })
 -----------------------------------
 LQS   = LQS or {}
@@ -113,7 +114,7 @@ end
 LQS.menu = function(obj)
     local check = P.compileCheck(obj.check)
 
-    return P.handler("menu", {
+    return P.handler("menu", { obj = obj,
         onTrigger = function(ctx)
             local player, npc = ctx.player, ctx.npc
 
@@ -149,7 +150,12 @@ LQS.menu = function(obj)
                 table.insert(options, {
                     opt.label,
                     function()
-                        choose(ctx, obj, opt)
+                        -- onChoice takes every pick (index of the option)
+                        if obj.onChoice ~= nil then
+                            obj.onChoice(ctx, i)
+                        else
+                            choose(ctx, obj, opt)
+                        end
                     end,
                 })
             end

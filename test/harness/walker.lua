@@ -45,7 +45,15 @@ function W.instrument()
     LQS.trade  = tagged("trade",  LQS.trade)
     LQS.menu   = tagged("menu",   LQS.menu)
     LQS.defeat = tagged("defeat", LQS.defeat)
-    LQS.checks = tagged("checks", LQS.checks)
+    -- LQS.checks is a callable table (it carries define): keep it one
+    local checks = LQS.checks
+    LQS.checks = setmetatable({ define = checks.define }, {
+        __call = function(_, tbl)
+            local fn = checks(tbl)
+            tags[fn] = { kind = "checks", obj = tbl }
+            return fn
+        end,
+    })
 
     local add = LQS.add
     LQS.add = function(source, tbl)

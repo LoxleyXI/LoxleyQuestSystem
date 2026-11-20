@@ -103,10 +103,17 @@ end
 
 W.instrument()
 
+-- LQS_VALIDATE=warn: load quests with faults anyway (to survey them)
+if os.getenv("LQS_VALIDATE") then
+    LQS.settings.VALIDATE = os.getenv("LQS_VALIDATE")
+end
+
 -- LQS_PERTURB=n: allocate junk first, to show whether a quest's results depend on memory layout
 for _ = 1, tonumber(os.getenv("LQS_PERTURB") or 0) do
     local junk = { {}, function() end }
 end
+
+S.strictItems()
 
 local errorsBefore = #S.errors
 ok, err = xpcall(function() dofile(questFile) end, debug.traceback)
@@ -117,6 +124,15 @@ if not ok then
 end
 
 S.initZones()
+
+-- What LQS said while the quest loaded (validation faults, warnings)
+local loadNotes = {}
+
+for _, entry in ipairs(S.log) do
+    if entry.kind == "print" and entry.text:match("^%[LQS%]") and not entry.text:match("Added entity") then
+        table.insert(loadNotes, entry.text)
+    end
+end
 
 -- Files without quests (LQS.npc, teleporters): talk to every NPC and try every menu option
 if #W.quests == 0 then
@@ -247,6 +263,17 @@ for _, quest in ipairs(W.quests) do
 
     for _, problem in ipairs(lint(quest)) do
         table.insert(notes, "lint: " .. problem)
+    end
+
+    -- Load-time faults from LQS's own validation: errors fail the quest
+    for _, text in ipairs(loadNotes) do
+        if text:find(quest.info.name or "", 1, true) then
+            table.insert(notes, text)
+
+            if not text:match(": warning: ") then
+                failed = true
+            end
+        end
     end
 
     -- Optional quest script: LQS_SCRIPTS/<var>.lua returns { setup = fn(player, step, S), trades = { [entity] = items } }

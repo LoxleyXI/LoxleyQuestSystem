@@ -273,7 +273,7 @@ local function exchange(ctx, obj)
 end
 
 LQS.trade = function(obj)
-    return P.handler("trade", {
+    return P.handler("trade", { obj = obj,
         onTrade = function(ctx)
             -- A reward from this quest is still on its way
             if ctx:isLocked() then

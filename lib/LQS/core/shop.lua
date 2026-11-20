@@ -128,7 +128,7 @@ LQS.purchaseItem = function(player, npc, item, obj)
 end
 
 LQS.shop = function(obj)
-    return P.handler("shop", { onTrigger = function(ctx)
+    return P.handler("shop", { obj = obj, onTrigger = function(ctx)
         local player, npc = ctx.player, ctx.npc
         local balance     = player:getCharVar(obj.var)
         local purchase = function(player, npc, item)

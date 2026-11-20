@@ -154,7 +154,18 @@ P.checkList =
     end,
 }
 
-LQS.checks = function(tbl)
+-- A server's own check key: LQS.checks.define("name", function(player, value) ... end).
+-- Define before quests load (from the server's lib folder).
+function P.defineCheck(name, fn)
+    P.checkList[name] = fn
+end
+
+function P.knownCheck(name)
+    return P.checkList[name] ~= nil or P.checkList[string.lower(name)] ~= nil
+end
+
+-- LQS.checks({ level = 30 }) compiles a check; LQS.checks.define adds a key
+local function compile(tbl)
     return function(player)
         local pass = true
 
@@ -173,11 +184,10 @@ LQS.checks = function(tbl)
     end
 end
 
-P.conditional =
-{
-    ["job"] = function(player, tbl)
-        return tbl[player:getMainJob()]
+LQS.checks = setmetatable({ define = function(name, fn) P.defineCheck(name, fn) end }, {
+    __call = function(_, tbl)
+        return compile(tbl)
     end,
-}
+})
 
 return {}

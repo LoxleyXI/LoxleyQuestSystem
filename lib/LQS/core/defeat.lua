@@ -44,7 +44,7 @@ end
 -- Runs once per credited member (LSB calls onMobDeath for each), at that
 -- member's own step; the spawner comes back once.
 LQS.defeat = function(params)
-    return P.handler("defeat", {
+    return P.handler("defeat", { obj = params,
         onMobDeath = function(ctx)
             local mob, member = ctx.mob, ctx.player
 

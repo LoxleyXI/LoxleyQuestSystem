@@ -21,6 +21,8 @@ if filter and filter:match("^@") then
         dofile(file)
     end
 
+    S.strictItems()
+
     local T = dofile(here .. "tests.lua")
     local name = filter:sub(2)
     local test = T.byName[name]

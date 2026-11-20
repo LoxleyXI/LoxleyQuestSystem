@@ -416,4 +416,81 @@ test("dialog: a failed check on an NPC with default shows the default", wrap(fun
     T.eq(#S.errors, 0, "server errors")
 end), { allowErrors = true })
 
+
+-----------------------------------
+-- Validation
+-----------------------------------
+local function refused(tbl)
+    tbl.info = tbl.info or { name = "Bad Quest", var = "[LQS]BAD" }
+    local result = LQS.add(Module:new("unit_bad"), tbl)
+    return result == false
+end
+
+test("validate: an unknown builder option refuses the quest", wrap(function()
+    T.ok(refused({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { Giver = LQS.dialog({ evnt = { "Typo." } }) } },
+    }), "a typo'd option should refuse the quest")
+end), { allowErrors = true })
+
+test("validate: 2.x keys say what replaced them", wrap(function()
+    T.ok(refused({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { Giver = LQS.dialog({ quest = "Old", event = { "Hi." } }) } },
+    }), "quest = should refuse")
+
+    local said = false
+    for _, e in ipairs(S.log) do
+        if e.kind == "print" and e.text:find("moved to accept or complete", 1, true) then
+            said = true
+        end
+    end
+    T.ok(said, "the message names the replacement")
+end), { allowErrors = true })
+
+test("validate: an unknown check key refuses the quest", wrap(function()
+    T.ok(refused({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { check = { lvl = 5 }, Giver = LQS.dialog({ event = { "Hi." } }) } },
+    }), "unknown check")
+end), { allowErrors = true })
+
+test("validate: a step naming a missing entity refuses the quest", wrap(function()
+    T.ok(refused({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { Givr = LQS.dialog({ event = { "Hi." } }) } },
+    }), "missing entity")
+end), { allowErrors = true })
+
+test("validate: a trade builder under onTrigger refuses the quest", wrap(function()
+    T.ok(refused({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { Giver = { onTrigger = LQS.trade({ required = 640 }) } } },
+    }), "wrong event")
+end), { allowErrors = true })
+
+test("validate: a defined check key is accepted and works", wrap(function()
+    LQS.checks.define("vip", function(player, value) return (player:getCharVar("[UNIT]VIP") == 1) == value end)
+
+    T.quest({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { check = { vip = true }, Giver = LQS.dialog({ event = { "Welcome." } }) } },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Giver")
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 0, "not a vip")
+
+    p:setCharVar("[UNIT]VIP", 1)
+    T.trigger(p, "Giver")
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "vip")
+end))
+
+test("validate: a second quest can't reuse a var", wrap(function()
+    T.quest({ info = { name = "First", var = "[LQS]SHARED" }, entities = { [zoneName] = { T.npc("A") } }, steps = { { A = LQS.dialog({ event = { "Hi." } }) } } })
+    T.ok(refused({ info = { name = "Second", var = "[LQS]SHARED" }, entities = { [zoneName] = { T.npc("B") } }, steps = { { B = LQS.dialog({ event = { "Hi." } }) } } }), "duplicate var")
+end), { allowErrors = true })
+
 return T

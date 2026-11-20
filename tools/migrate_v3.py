@@ -171,6 +171,21 @@ def migrate_builders(src, notes):
                     new = "as"
                 elif key == "func" and kind == "defeat":
                     new = "after"
+                elif key == "spawner" and kind == "menu":
+                    # never read by LQS.menu: drop it
+                    stop = vend
+                    while stop < close and src[stop] in " \t":
+                        stop += 1
+                    if stop < close and src[stop] == ",":
+                        stop += 1
+                    line_start = src.rfind("\n", 0, kstart) + 1
+                    if src[line_start:kstart].strip() == "":
+                        kstart = line_start
+                        if stop < len(src) and src[stop] == "\n":
+                            stop += 1
+                    edits.append((kstart, stop, ""))
+                    notes.append("menu: spawner removed (LQS.menu never used it)")
+                    continue
                 elif key == "name" and value in ('""', "''"):
                     edits.append((kstart, vend, "object = true"))
                     notes.append(f"{kind}: name = \"\" -> object = true")
@@ -290,6 +305,21 @@ def migrate_handlers(src, notes):
             e = convert_function(src, mask, d.start(), d.end() - 1, roles, notes, name)
             if e:
                 edits.append(e)
+
+    # Menu onChoice: function(player, npc, choice) -> function(ctx, choice)
+    for m in re.finditer(r"\bonChoice\s*=\s*function\s*\(([^)]*)\)", src):
+        if not mask[m.start()]:
+            continue
+        params = [p.strip() for p in m.group(1).split(",") if p.strip()]
+        if params and params[0] == "ctx":
+            continue
+        params_open = src.index("(", m.start() + m.group(0).index("function"))
+        close = match_close(src, mask, params_open)
+        indent = body_indent(src, close)
+        pre = preamble(params[:2], ROLES["onTrigger"], indent)
+        rest = ", " + ", ".join(params[2:]) if len(params) > 2 else ""
+        edits.append((params_open, close + 1, "(ctx" + rest + ")" + pre))
+        notes.append("menu onChoice -> function(ctx, index)")
 
     # Handler factories: return function(player, npc[, trade])
     for m in re.finditer(r"\breturn\s+function\s*\(\s*player\s*,\s*npc\s*(,\s*trade\s*)?\)", src):
