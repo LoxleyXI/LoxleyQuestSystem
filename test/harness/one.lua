@@ -109,6 +109,9 @@ if os.getenv("LQS_HARNESS_EXT") then
     dofile(os.getenv("LQS_HARNESS_EXT"))(S, W)
 end
 
+-- The harness always wants LQS's warnings
+LQS.settings.WARNINGS = true
+
 -- LQS_VALIDATE=warn: load quests with faults anyway (to survey them)
 if os.getenv("LQS_VALIDATE") then
     LQS.settings.VALIDATE = os.getenv("LQS_VALIDATE")

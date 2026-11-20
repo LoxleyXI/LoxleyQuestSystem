@@ -172,8 +172,11 @@ LQS.add = function(source, tbl)
     -- Validate; errors refuse the quest unless settings.VALIDATE is "warn"
     local problems, warnings = P.validateQuest(tbl)
 
-    for _, text in ipairs(warnings) do
-        print(fmt("[LQS] {}: warning: {}", questLabel, text))
+    -- Warnings (unknown entity fields, long names) when settings.WARNINGS is on
+    if LQS.settings ~= nil and LQS.settings.WARNINGS then
+        for _, text in ipairs(warnings) do
+            print(fmt("[LQS] {}: warning: {}", questLabel, text))
+        end
     end
 
     for _, text in ipairs(problems) do

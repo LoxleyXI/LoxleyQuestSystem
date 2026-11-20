@@ -32,6 +32,8 @@ LQS.settings =
     DEBUG   = false,  -- Enable debugging mode
     -- "refuse": a quest with faults doesn't load. "warn": it loads anyway (faults printed)
     VALIDATE = "refuse",
+    -- Print validation warnings too (unknown entity fields, names over 15 characters)
+    WARNINGS = false,
 }
 
 -- Pull optional setting overrides from LSB map settings
