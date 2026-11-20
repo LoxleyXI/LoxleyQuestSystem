@@ -691,4 +691,12 @@ test("validate: a builder in place of an event refuses the quest", wrap(function
     }), "a handler as an event should refuse the quest")
 end), { allowErrors = true })
 
+
+test("validate: a handler with the 2.x (player, npc) form refuses the quest", wrap(function()
+    T.ok(refused({
+        entities = { [zoneName] = { T.npc("Lao") } },
+        steps = { { Lao = function(player, npc) player:fmt("Hi.") end } },
+    }), "a (player, npc) handler should refuse the quest")
+end), { allowErrors = true })
+
 return T

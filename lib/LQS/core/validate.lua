@@ -311,12 +311,28 @@ function P.validateQuest(tbl)
                     markUsed(h.obj, where, names[name])
                 end
 
+                -- A handler of your own takes ctx alone; (player, npc, ...) is the 2.x form
+                local function ownHandler(fn, where)
+                    if type(fn) ~= "function" then
+                        return
+                    end
+
+                    local info = debug.getinfo(fn, "u")
+
+                    if info and info.nparams and info.nparams > 1 then
+                        err(where, string.format("takes %d parameters; a handler receives ctx (ctx.player, ctx.npc, ...)", info.nparams))
+                    end
+                end
+
+                ownHandler(entry, path)
+
                 if type(entry) == "table" then
                     builder(entry, path)
                     checkTable(path .. ".check", entry.check)
 
                     for _, event in ipairs({ "onTrigger", "onTrade", "onMobDeath" }) do
                         builder(entry[event], path .. "." .. event)
+                        ownHandler(entry[event], path .. "." .. event)
                     end
 
                     for i, sub in ipairs(entry) do
