@@ -221,7 +221,7 @@ function P.validateQuest(tbl)
 
             local shown = e.packetName or e.name
 
-            if type(shown) == "string" and #shown > 15 then
+            if type(shown) == "string" and #shown > 15 and not e.hideName then
                 warn(path, string.format("name '%s' is %d characters; the client shows 15", shown, #shown))
             end
 
