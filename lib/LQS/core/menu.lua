@@ -62,6 +62,8 @@ local function spawnGroup(ctx, obj)
         raiseAllowed = obj.raiseAllowed,
         partySize    = obj.partySize,
         scaleVar     = obj.scaleVar,
+        job          = obj.job,
+        subjob       = obj.subjob,
     }) then
         if obj.setVar ~= nil then
             for _, varInfo in pairs(obj.setVar) do

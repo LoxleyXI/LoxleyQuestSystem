@@ -39,16 +39,16 @@ local COMMON = { "check", "event", "reward", "step", "accept", "complete", "miss
 
 local BUILDER_KEYS =
 {
-    dialog = set({ "fail", "spawn", "hideSpawner", "levelCap", "raiseAllowed", "partySize", "scaleVar", "nextPos", unpack(COMMON) }),
+    dialog = set({ "fail", "spawn", "hideSpawner", "levelCap", "raiseAllowed", "partySize", "scaleVar", "nextPos", "job", "subjob", unpack(COMMON) }),
     trade  = set({
         "required", "accepted", "declined", "increment", "keep", "spawn", "tally", "list",
         "exchange", "sellrate", "exclude", "replacements", "conditional", "points", "flag",
         "nextPos", "levelCap", "raiseAllowed", "partySize", "scaleVar", "setVar", "setVarAll",
-        "hideSpawner", unpack(COMMON),
+        "hideSpawner", "job", "subjob", unpack(COMMON),
     }),
     menu   = set({
         "title", "before", "declined", "default", "options", "spawn", "flag", "nextPos",
-        "levelCap", "raiseAllowed", "partySize", "scaleVar", "setVar", "setVarAll", "onChoice", "hideSpawner",
+        "levelCap", "raiseAllowed", "partySize", "scaleVar", "setVar", "setVarAll", "onChoice", "hideSpawner", "job", "subjob",
         unpack(COMMON),
     }),
     defeat = set({
@@ -206,6 +206,14 @@ function P.validateQuest(tbl)
         end
 
         if type(event) ~= "table" then
+            return
+        end
+
+        if event.byJob ~= nil then
+            for job, sub in pairs(event.byJob) do
+                markEvent(sub, path .. ".byJob[" .. tostring(job) .. "]", entity)
+            end
+
             return
         end
 

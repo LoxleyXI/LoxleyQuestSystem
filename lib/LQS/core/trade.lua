@@ -96,6 +96,8 @@ local function startEncounter(ctx, case)
         raiseAllowed = case.raiseAllowed,
         partySize    = case.partySize,
         scaleVar     = case.scaleVar,
+        job          = case.job,
+        subjob       = case.subjob,
     })
 
     if started and case.setVar ~= nil then

@@ -611,4 +611,25 @@ test("reward after(player) runs once the reward is given", wrap(function()
     T.eq(p:getCharVar("[UNIT]AFTER"), 1, "after ran")
 end))
 
+
+test("byJob: the event and the reward follow the main job", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Smith") } },
+        steps = { { Smith = LQS.dialog({
+            event  = { byJob = { [xi.job.WAR] = { "An axe for you." }, default = { "A stick for you." } } },
+            reward = { byJob = { [xi.job.WAR] = 16640, default = 17088 } },
+        }) } },
+    })
+
+    local p = T.player({ job = xi.job.WAR })
+    T.trigger(p, "Smith") T.run()
+    T.eq(p:getItemCount(16640), 1, "warrior's reward")
+
+    local said = false
+    for _, e in ipairs(S.log) do
+        if e.kind == "text" and e.text:find("An axe", 1, true) then said = true end
+    end
+    T.ok(said, "warrior's line")
+end))
+
 return T

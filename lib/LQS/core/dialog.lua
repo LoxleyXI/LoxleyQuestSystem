@@ -71,6 +71,8 @@ LQS.dialog = function(obj)
                         partySize    = obj.partySize,
                         scaleVar     = obj.scaleVar,
                         nextPos      = obj.nextPos,
+                        job          = obj.job,
+                        subjob       = obj.subjob,
                     })
                 end)
             end

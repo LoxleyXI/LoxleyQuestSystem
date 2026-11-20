@@ -31,7 +31,13 @@ end
 function P.eventOf(ctx, event)
     if type(event) == "string" then
         local dialog = ctx and ctx.entity and ctx.entity.dialog
-        return type(dialog) == "table" and dialog[event] or nil
+        event = type(dialog) == "table" and dialog[event] or nil
+    end
+
+    -- { byJob = { [xi.job.WAR] = event, default = event } }: chosen by main job
+    if type(event) == "table" and event.byJob ~= nil and ctx ~= nil and ctx.player ~= nil then
+        event = event.byJob[ctx.player:getMainJob()] or event.byJob.default
+        return P.eventOf(ctx, event)
     end
 
     return event
