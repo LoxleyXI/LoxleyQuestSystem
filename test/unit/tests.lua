@@ -493,4 +493,20 @@ test("validate: a second quest can't reuse a var", wrap(function()
     T.ok(refused({ info = { name = "Second", var = "[LQS]SHARED" }, entities = { [zoneName] = { T.npc("B") } }, steps = { { B = LQS.dialog({ event = { "Hi." } }) } } }), "duplicate var")
 end), { allowErrors = true })
 
+
+test("event: 2.x row names still work in direct LQS.event calls", wrap(function()
+    local p = T.player()
+    p:setCharVar("[UNIT]COUNT", 7)
+    LQS.event(p, nil, { { fmt = "Count {}", var = "[UNIT]COUNT" }, { emotion = "waves." } })
+    T.run()
+
+    local said, narrated = false, false
+    for _, e in ipairs(S.log) do
+        if e.kind == "text" and e.text == "Count 7" then said = true end
+        if e.kind == "text" and e.text == "waves." then narrated = true end
+    end
+    T.ok(said, "fmt row said its line")
+    T.ok(narrated, "emotion row narrated")
+end))
+
 return T

@@ -96,7 +96,37 @@ P.scriptedEvent = function(player, entities, events)
     return 6000 + #events * 1000
 end
 
+-- 2.x row names still work for LQS.event calls made from other code (quests are
+-- validated and must use the new names); each prints a notice once
+local legacyRows = { fmt = "say", emotion = "narrate", animation = "pose" }
+local legacyNoted = {}
+
+local function upgradeRow(row)
+    for old, new in pairs(legacyRows) do
+        if row[old] ~= nil and row[new] == nil and (old ~= "animation" or row.duration ~= nil) then
+            if not legacyNoted[old] then
+                legacyNoted[old] = true
+                print(fmt("[LQS] event row '{}' is now '{}'", old, new))
+            end
+
+            local copy = {}
+
+            for k, v in pairs(row) do
+                copy[k] = v
+            end
+
+            copy[new] = row[old]
+            copy[old] = nil
+            row       = copy
+        end
+    end
+
+    return row
+end
+
 P.processTable = function(player, npc, prefix, row, delay)
+    row = upgradeRow(row)
+
     -- Face
     -- Turn entity to face target
     if row.face ~= nil then
