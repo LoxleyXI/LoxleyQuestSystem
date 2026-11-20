@@ -354,4 +354,13 @@ function P.delaySpawn(player, npc, delay, mobs, entities, hideSpawner, params)
     return true
 end
 
+-- Spawn quest mobs from your own handler: LQS.spawn(ctx, { "Mob", ... }, opts)
+-- opts: delay (ms), hideSpawner (default true), levelCap, raiseAllowed, partySize,
+--       scaleVar, nextPos, job, subjob. True if the encounter began.
+LQS.spawn = function(ctx, mobs, opts)
+    opts = opts or {}
+
+    return P.delaySpawn(ctx.player, ctx.npc, opts.delay or 0, mobs, ctx.entities, opts.hideSpawner ~= false, opts)
+end
+
 return {}

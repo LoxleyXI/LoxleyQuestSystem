@@ -131,6 +131,8 @@ Every handler receives one `ctx`:
 | `ctx:locked(fn)` | run fn under the quest's reward lock |
 | `ctx:busy()` | the player is mid-dialog |
 
+`LQS.spawn(ctx, { "Mob" }, { delay, levelCap, partySize, hideSpawner, ... })` starts an encounter from your own handler.
+
 ```lua
 [Well] =
 {

@@ -658,4 +658,18 @@ test("defeat helper: only party members not on the step get it", wrap(function()
     T.eq(a:getCharVar("[LQS]UNIT"), 1, "A's quest var")
 end))
 
+
+test("LQS.spawn: a handler of your own starts an encounter", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Horn"), T.mob("Beast", { key = "BEAST" }) } },
+        steps = { { Horn = function(ctx) LQS.spawn(ctx, { "BEAST" }, { delay = 1000 }) end, BEAST = LQS.defeat({ mobs = { "BEAST" } }) } },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Horn") T.run()
+    T.ok(T.entity("Beast"):isSpawned(), "spawned")
+    S.killMob(T.entity("Beast"), p) T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "quest var")
+end))
+
 return T
