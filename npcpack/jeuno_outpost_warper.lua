@@ -9,7 +9,10 @@
 --   - Standard retail outpost costs
 -----------------------------------
 
-return LQS.outpostTeleporter({
+local m = Module:new("npc_jeuno_outpost_warper")
+
+local config =
+{
     name = "Outpost Warper",
     zone = "Lower_Jeuno",
     pos  = { 24.1552, -1.0, 45.9046, 149 },
@@ -23,4 +26,19 @@ return LQS.outpostTeleporter({
     -- itemsPerPage   = 5
     -- teleportDelay  = 1250
     -- animation      = { actionID = 6, animID = 600 }
+}
+
+-- The teleporter functions return an onTrigger handler; LQS.npc places the NPC
+LQS.npc(m, {
+    [config.zone] =
+    {
+        {
+            name      = config.name,
+            look      = config.look,
+            pos       = config.pos,
+            onTrigger = LQS.outpostTeleporter(config),
+        },
+    },
 })
+
+return m

@@ -3,7 +3,7 @@
 -----------------------------------
 -- Copyright (c) 2025 LoxleyXI
 --
--- https://github.com/LoxleyXI/LQS
+-- https://github.com/LoxleyXI/LoxleyQuestSystem
 -----------------------------------
 -- This program is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by

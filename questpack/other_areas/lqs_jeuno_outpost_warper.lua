@@ -9,7 +9,10 @@
 -- - Level and outpost unlock requirements
 -----------------------------------
 
-return LQS.outpostTeleporter({
+local m = Module:new("lqs_jeuno_outpost_warper")
+
+local config =
+{
     name = "Outpost Warper",
     zone = "Lower_Jeuno",
     pos  = { 24.155, -1.0, 45.905, 149 },
@@ -34,4 +37,19 @@ return LQS.outpostTeleporter({
 
     -- Custom animation (optional)
     -- animation = { actionID = 6, animID = 600 },
+}
+
+-- The teleporter functions return an onTrigger handler; LQS.npc places the NPC
+LQS.npc(m, {
+    [config.zone] =
+    {
+        {
+            name      = config.name,
+            look      = config.look,
+            pos       = config.pos,
+            onTrigger = LQS.outpostTeleporter(config),
+        },
+    },
 })
+
+return m

@@ -1,5 +1,5 @@
 # Loxley Quest System (LQS)
-[![LQS](https://github.com/LoxleyXI/LQS/blob/main/lqs.png)](https://github.com/LoxleyXI/LQS)
+[![LQS](https://github.com/LoxleyXI/LoxleyQuestSystem/blob/main/lqs.png)](https://github.com/LoxleyXI/LoxleyQuestSystem)
 
 ## Overview
 The Loxley Quest System (LQS) is a module for the [LandSandBoat](https://github.com/LandSandBoat/server) FFXI server emulator. It allows server operators to easily create their own custom quests and script custom events using a simple template system. The system provides an authentic experience and is actively in use by multiple prominent FFXI server projects.
@@ -39,7 +39,7 @@ If you found this module helpful, please consider kindly supporting my other wor
 ## Simple Example
 The following is a minimal example to get started building quests in LQS.
 
-(For a more complete example, see: [Here be Dragons](https://github.com/LoxleyXI/LQS/blob/main/questpack/other_areas/lqs_here_be_dragons.lua))
+(For a more complete example, see: [Here be Dragons](https://github.com/LoxleyXI/LoxleyQuestSystem/blob/main/questpack/other_areas/lqs_here_be_dragons.lua))
 ```lua
 local m = Module:new("lqs_example")
 
@@ -431,6 +431,43 @@ LQS.myThing = function(config)
     end
 end
 ```
+
+## Tests
+LQS comes with a test harness that runs every quest without a server: a small stand-in for the LandSandBoat map server (players, NPCs, mobs, zones, timers, menus and trades) using LSB's own enums and `npc_util.lua`. A walker plays each quest from its `steps` table: it meets each step's checks, talks to NPCs, picks menu options, trades the required items and kills the mobs that spawn, then checks the quest finished, each reward arrived once, and talking to everyone again changes nothing.
+
+You need [LuaJIT](https://luajit.org/) and a LandSandBoat checkout.
+
+```sh
+LSB_DIR=/path/to/server luajit test/run.lua             # unit tests, then every quest
+LSB_DIR=/path/to/server luajit test/run.lua questpack/bastok/lqs_bug_report.lua -v
+```
+
+`-v` prints each quest's transcript (dialog, choices, vars, items); `--record <dir>` saves the var and item part of it, to compare a quest before and after a change.
+
+Your own quests run the same way. Point the harness at your server's files:
+
+| Variable | What |
+|----------|------|
+| `LSB_DIR` | LandSandBoat checkout (enums, `npc_util.lua`, the binding lists) |
+| `LQS_LIB` | folder holding `LQS.lua` and `LQS/`, if not this repo's `lib/` |
+| `MODULES_DIR` | folder that `require("modules/...")` resolves against |
+| `LQS_PRELOAD` | files or folders loaded before LQS (your enums and shared systems), `:` separated |
+| `LQS_BINDINGS` | your C++ modules, so methods they add to `CBaseEntity` are known, `:` separated |
+| `LQS_SCRIPTS` | folder of quest scripts (below) |
+
+Most quests need nothing more. A quest with a hand-written trade or an `eval` check needs a script telling the walker what to do, named after its var (`[LQS]VINE_WARD` is `LQS_VINE_WARD.lua`):
+
+```lua
+return
+{
+    -- Called before each step
+    setup  = function(player, step, S) player:setCharVar("[MY]OTHER_QUEST", 11) end,
+    -- Items to hand over for trades LQS.trade doesn't describe
+    trades = { ["Mossy Roots"] = { { 1446, 12 }, { 703, 12 } } },
+}
+```
+
+Pull requests run the tests on GitHub: a change to LQS runs everything, a change to quests runs just those quests.
 
 ## History
 This system has been developed over a couple of years by myself and now supports over 130+ live custom quests and content systems.

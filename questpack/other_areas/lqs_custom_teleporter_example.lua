@@ -9,7 +9,10 @@
 -- - Pre-teleport effects (buffs, reraise, etc.)
 -----------------------------------
 
-return LQS.teleporter({
+local m = Module:new("lqs_custom_teleporter_example")
+
+local config =
+{
     name = "Dimensional Guide",
     zone = "Port_Jeuno",
     pos  = { -10.0, 0.0, -20.0, 128 },
@@ -113,4 +116,19 @@ return LQS.teleporter({
     insufficientGil = "You don't have enough Gil for this journey.",
     insufficientCP  = "You don't have enough conquest points for this journey.",
     cancelled       = "Perhaps another time. Safe travels!",
+}
+
+-- The teleporter functions return an onTrigger handler; LQS.npc places the NPC
+LQS.npc(m, {
+    [config.zone] =
+    {
+        {
+            name      = config.name,
+            look      = config.look,
+            pos       = config.pos,
+            onTrigger = LQS.teleporter(config),
+        },
+    },
 })
+
+return m
