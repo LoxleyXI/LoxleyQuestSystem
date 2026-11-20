@@ -29,7 +29,7 @@ LQS.settings =
 {
     -- Respawn of spawners
     RESPAWN = 180000, -- 3 minutes
-    DEBUG   = true,   -- Enable debugging mode
+    DEBUG   = false,  -- Enable debugging mode
 }
 
 -- Pull optional setting overrides from LSB map settings
@@ -285,7 +285,8 @@ local processTable = function(player, npc, prefix, row, delay)
         end
 
     elseif row.charvar ~= nil then
-        player:setCharVar(row.charvar, row.value)
+        local expiry = type(row.expiry) == "function" and row.expiry() or row.expiry
+        player:setCharVar(row.charvar, row.value, expiry)
 
     elseif row.costume ~= nil then
         player:setCostume(row.costume)
@@ -369,7 +370,7 @@ local processTable = function(player, npc, prefix, row, delay)
             player:ceAnimate(player, player, row.animate, row.mode or 0)
         end
 
-    -- Send an action packet (visible to all players)
+    -- Send an action packet (visible to all players, or only this player with row.playerOnly)
     -- row.action = { actionID, animationID }
     elseif
         row.action ~= nil and
@@ -378,11 +379,14 @@ local processTable = function(player, npc, prefix, row, delay)
         if
             row.entity ~= nil
         then
-            local entity = getEntity(player, row.entity)
-            if row.target == "player" then
-                entity:injectActionPacket(player:getID(), row.action[1], row.action[2], 0, 0, 0, 0, 0)
+            local entity   = getEntity(player, row.entity)
+            local targetID = row.target == "player" and player:getID() or entity:getID()
+
+            -- playerOnly needs the ceActionPacket binding (lqs_util.cpp); without it, everyone sees it
+            if row.playerOnly and type(entity.ceActionPacket) == "function" then
+                entity:ceActionPacket(player, targetID, row.action[1], row.action[2])
             else
-                entity:injectActionPacket(entity:getID(), row.action[1], row.action[2], 0, 0, 0, 0, 0)
+                entity:injectActionPacket(targetID, row.action[1], row.action[2], 0, 0, 0, 0, 0)
             end
         else
             player:injectActionPacket(player:getID(), row.action[1], row.action[2], 0, 0, 0, 0, 0)
@@ -434,8 +438,9 @@ local processTable = function(player, npc, prefix, row, delay)
     elseif row.glimpse ~= nil then
         applyEntities(player, row.glimpse[2], function(entity, playerArg)
             entity:ceSpawn(playerArg)
-            entity:timer(row.glimpse[1], function(npcArg)
-                entity:ceDespawn(playerArg)
+            -- On the player's timer so it dies with them if they leave first
+            playerArg:timer(row.glimpse[1], function(playerTimerArg)
+                entity:ceDespawn(playerTimerArg)
             end)
         end)
 
@@ -520,9 +525,9 @@ LQS.event = function(player, npc, tbl)
         return
     end
 
-    -- Evaluate function instead of executing event
+    -- Evaluate function instead of executing event (given the npc too, for defaults that act as it)
     if type(tbl) == "function" then
-        tbl(player)
+        tbl(player, npc)
         return
     end
 
@@ -718,6 +723,101 @@ LQS.treasurePool = function(player, pools, source)
             player:addTreasure(result[2], source)
         end
     end
+end
+
+-----------------------------------
+-- Power for an additional effect whose caller didn't specify a power range. Averages half
+-- the mob's level, so this scales.
+-----------------------------------
+LQS.defaultRiderPower = function(mob)
+    local level = mob:getMainLvl()
+
+    return math.random(math.max(1, math.floor(level / 3)), math.max(1, math.floor(level * 2 / 3)))
+end
+
+-----------------------------------
+-- Additional effects - legacy content support
+--
+-- This function applies a damage addeffect with the power xi.mob.onAddEffect calculated before the
+-- LSB refactor in 2026. Damage is resistable. actorStat is left unset on purpose.
+-----------------------------------
+LQS.addEffectDamage = function(mob, target, damage, element, params)
+    params = params or {}
+
+    local basePower = params.power
+
+    if not basePower then
+        local dMod = mob:getStat(xi.mod.INT) - target:getStat(xi.mod.INT)
+
+        if dMod > 20 then
+            dMod = 20 + (dMod - 20) / 2
+        end
+
+        basePower = math.max(dMod, 0) + target:getMainLvl() - mob:getMainLvl() + damage / 2
+    end
+
+    return xi.combat.action.executeAddEffectDamage(mob, target,
+    {
+        chance         = params.chance or 100,
+        attackType     = params.attackType or xi.attackType.MAGICAL,
+        magicalElement = element,
+        basePower      = basePower,
+        canMAB         = params.canMAB or false,
+        canResist      = true,
+    })
+end
+
+LQS.addEffectStatus = function(mob, target, effectId, params)
+    params = params or {}
+
+    return xi.combat.action.executeAddEffectEnfeeblement(mob, target,
+    {
+        chance   = params.chance or 100,
+        effectId = effectId,
+        power    = params.power or 0,
+        duration = params.duration or 120,
+        element  = params.element or xi.element.NONE,
+    })
+end
+
+-----------------------------------
+-- Reads an "aeffect" rider spec, in any of four shapes:
+--   { element = xi.element.FIRE, minPower, maxPower }     damaging rider, power range optional
+--   { effect = xi.effect.PARALYSIS, power =, duration = } status rider
+--   { xi.mob.ae.POISON, minPower, maxPower }              a key xi.mob.onAddEffect still ships
+--   xi.mob.ae.POISON                                      as above, with default power
+-- A damaging AE with no set range falls back to LQS.defaultRiderPower.
+-----------------------------------
+LQS.addEffectFromSpec = function(mob, target, damage, spec, params)
+    params = params or {}
+
+    if type(spec) ~= "table" then
+        return xi.mob.onAddEffect(mob, target, damage, spec, params)
+    end
+
+    if spec.element and not spec.effect then
+        if not params.power then
+            params.power = spec[1] and spec[2] and math.random(spec[1], spec[2]) or LQS.defaultRiderPower(mob)
+        end
+
+        return LQS.addEffectDamage(mob, target, damage, spec.element, params)
+    end
+
+    if spec.effect then
+        return LQS.addEffectStatus(mob, target, spec.effect,
+        {
+            chance   = params.chance or spec.chance,
+            power    = params.power or spec.power,
+            duration = params.duration or spec.duration,
+            element  = spec.element,
+        })
+    end
+
+    if not params.power and spec[2] and spec[3] then
+        params.power = math.random(spec[2], spec[3])
+    end
+
+    return xi.mob.onAddEffect(mob, target, damage, spec[1], params)
 end
 
 LQS.randomNoRepeat = function(size, exclude)
@@ -917,7 +1017,11 @@ local function spawnMob(player, npc, entities, mobName, params)
             end
 
             mob:spawn()
-            mob:setMobLevel(spawnLevel)
+
+            if spawnLevel ~= mobInfo.level then -- level is already set on DE initialization
+                mob:setMobLevel(spawnLevel) -- This will wipe any mods or mobmods defined in onMobSpawn.
+            end
+
             mob:updateClaim(player)
             mob:setLocalVar("NO_CASKET", 1)
             mob:setCallForHelpBlocked(true)
@@ -943,10 +1047,7 @@ local function spawnMob(player, npc, entities, mobName, params)
             mob:updateHealth()
 
             if mobInfo.hp ~= nil then
-                local mobHP = mob:getMaxHP()
-                local hpp   = math.max(math.ceil((mobInfo.hp / mobHP) * 100) - 100, 0)
-                mob:addMod(xi.mod.HPP, hpp)
-                mob:updateHealth()
+                mob:setMaxHP(mobInfo.hp)
                 mob:setHP(mob:getMaxHP())
             end
 
@@ -1308,6 +1409,13 @@ LQS.checks = function(tbl)
         return pass
     end
 end
+
+local conditional =
+{
+    ["job"] = function(player, tbl)
+        return tbl[player:getMainJob()]
+    end,
+}
 
 -----------------------------------
 -- LQS.dialog
@@ -2004,6 +2112,9 @@ LQS.purchaseItem = function(player, npc, item, obj)
                         if npcUtil.giveItem(player, item[2]) then
                             npc:facePlayer(player, true)
                             player:incrementCharVar(obj.var, -item[3])
+                            if obj.onPurchase then
+                                obj.onPurchase(player, npc, item)
+                            end
                         end
                     end
                 end,
@@ -2050,6 +2161,7 @@ LQS.paginatedMenu = function(player, config)
     local filter       = config.filter
     local onSelect     = config.onSelect
     local showNav      = config.showNavigation ~= false
+    local cycle        = config.cycle == true
     local onCancel     = config.onCancel
     local npc          = config.npc
 
@@ -2077,11 +2189,12 @@ LQS.paginatedMenu = function(player, config)
         local endIdx   = math.min(startIdx + itemsPerPage - 1, #filteredItems)
 
         -- Previous page navigation
-        if showNav and pageNum > 1 then
+        if showNav and (pageNum > 1 or (cycle and totalPages > 1)) then
             table.insert(options, {
                 "(Prev)",
                 function(playerArg)
-                    showPage(pageNum - 1)
+                    local prev = pageNum > 1 and pageNum - 1 or totalPages
+                    showPage(prev)
                 end
             })
         end
@@ -2107,11 +2220,12 @@ LQS.paginatedMenu = function(player, config)
         end
 
         -- Next page navigation
-        if showNav and pageNum < totalPages then
+        if showNav and (pageNum < totalPages or (cycle and totalPages > 1)) then
             table.insert(options, {
                 "(Next)",
                 function(playerArg)
-                    showPage(pageNum + 1)
+                    local next = pageNum < totalPages and pageNum + 1 or 1
+                    showPage(next)
                 end
             })
         end
@@ -2491,8 +2605,8 @@ local getMobSteps = function(event, var, entity, steps, entities)
                 entity.restore ~= nil and
                 optParams ~= nil and optParams.isKiller
             then
-                player:setHP(player:getMaxHP())
-                player:setMP(player:getMaxMP())
+                player:addHP(player:getMaxHP())
+                player:addMP(player:getMaxMP())
                 player:setTP(3000)
             end
 
@@ -2653,6 +2767,10 @@ local function entitySetup(dynamicEntity, tbl, entity)
             dynamicEntity.groupZoneId = entity.base[1]
         end
 
+        -- This prevents quest mobs from spawning on their own if their base template mob
+        -- has special spawn conditions (night, weather)
+        dynamicEntity.spawnType = 128
+
         if entity.mixins ~= nil then
             dynamicEntity.mixins = entity.mixins
         end
@@ -2682,7 +2800,8 @@ local function entitySetup(dynamicEntity, tbl, entity)
             if entity.onMobDisengage ~= nil then
                 entity.onMobDisengage(mob)
             else
-                DespawnMob(mob:getID())
+                -- DespawnMob in onMobDisengage causes a server crash on a later LSB commit
+                mob:setLocalVar("disengaged", 1)
             end
         end
 
@@ -2755,14 +2874,8 @@ local function entitySetup(dynamicEntity, tbl, entity)
         end
 
         if entity.aeffect ~= nil then
-            if type(entity.aeffect) == "table" then
-                dynamicEntity.onAdditionalEffect = function(mob, target, damage)
-                    return xi.mob.onAddEffect(mob, target, damage, entity.aeffect[1], { power = math.random(entity.aeffect[2], entity.aeffect[3]) })
-                end
-            else
-                dynamicEntity.onAdditionalEffect = function(mob, target, damage)
-                    return xi.mob.onAddEffect(mob, target, damage, entity.aeffect, { power = math.random(16, 26) })
-                end
+            dynamicEntity.onAdditionalEffect = function(mob, target, damage)
+                return LQS.addEffectFromSpec(mob, target, damage, entity.aeffect)
             end
         end
     end
@@ -3175,6 +3288,16 @@ LQS.add = function(source, tbl)
                 end
 
                 entitySetup(dynamicEntity, tbl, entity)
+
+                if entity.level ~= nil then
+                    dynamicEntity.minLevel = entity.level
+                    dynamicEntity.maxLevel = entity.level
+                else
+                    -- these can be nil for NPCs, but
+                    -- minLevel/maxLevel *must* be set for mobs.
+                    dynamicEntity.minLevel = entity.minLevel
+                    dynamicEntity.maxLevel = entity.maxLevel
+                end
 
                 tbl.entities[zoneName][index].entity = zone:insertDynamicEntity(dynamicEntity)
 

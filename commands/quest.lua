@@ -107,12 +107,14 @@ commandObj.onTrigger = function(player, str)
     for questName, questInfo in pairs(LQS.registry) do
         local status = player:getCharVar(questInfo.var)
 
-        if status == 1 then
-            table.insert(available, fmt("\129\158 {} ({}/{})", questInfo.name, status, questInfo.finish))
-        elseif status >= questInfo.finish then
-            table.insert(completed, fmt("\129\159 {} ({}/{})", questInfo.name, status, questInfo.finish))
-        else
-            table.insert(accepted,  fmt("\129\158 {} ({}/{})", questInfo.name, status, questInfo.finish))
+        if status > 0 then
+            if status < questInfo.finish then
+                table.insert(accepted, fmt("\129\158 {} ({}/{})", questInfo.name, status, questInfo.finish))
+            else
+                table.insert(completed, fmt("\129\159 {} ({}/{})", questInfo.name, status, questInfo.finish))
+            end
+        elseif questInfo.finish > 0 then
+            table.insert(available,  fmt("\129\158 {} ({}/{})", questInfo.name, status, questInfo.finish))
         end
     end
 
