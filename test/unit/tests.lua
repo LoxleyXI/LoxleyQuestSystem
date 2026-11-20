@@ -632,4 +632,30 @@ test("byJob: the event and the reward follow the main job", wrap(function()
     T.ok(said, "warrior's line")
 end))
 
+
+test("defeat helper: only party members not on the step get it", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Spot"), T.mob("Beast") } },
+        steps =
+        {
+            {
+                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", true } } }),
+                Beast = LQS.defeat({ mobs = { "Beast" }, helper = 4198 }),
+            },
+        },
+    })
+
+    local a = T.player({ name = "A" })
+    local b = T.player({ name = "B" })
+    b:setCharVar("[LQS]UNIT", 5) -- B is further on, and is helping
+    a.party, b.party = { a, b }, { a, b }
+
+    T.trigger(a, "Spot") T.run() T.choose(a, 2) T.run()
+    S.killMob(T.entity("Beast"), a) T.run()
+
+    T.eq(a:getItemCount(4198), 0, "A advanced, no helper reward")
+    T.eq(b:getItemCount(4198), 1, "B helped")
+    T.eq(a:getCharVar("[LQS]UNIT"), 1, "A's quest var")
+end))
+
 return T

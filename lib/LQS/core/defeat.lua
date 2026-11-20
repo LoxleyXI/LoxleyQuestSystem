@@ -82,8 +82,18 @@ LQS.defeat = function(params)
                 member:setLocalVar(params.setLocal.var, params.setLocal.val)
             end
 
-            if params.helper ~= nil then
-                P.awardGive(member, params.var or (ctx.quest.var .. "_HELPER"), params.helper)
+            -- helper: for party members who came along without being on this step
+            -- (once per mob; members on the step get the quest's own reward)
+            if params.helper ~= nil and mob:getLocalVar("[LQS]HELPERS_PAID") == 0 then
+                mob:setLocalVar("[LQS]HELPERS_PAID", 1)
+
+                P.allPlayers(member, function(other)
+                    local value = other:getCharVar(ctx.quest.var)
+
+                    if value ~= ctx.step - 1 and value ~= ctx.step then
+                        P.awardGive(other, params.var or (ctx.quest.var .. "_HELPER"), params.helper)
+                    end
+                end)
             end
 
             if params.exp ~= nil then
