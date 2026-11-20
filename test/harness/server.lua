@@ -25,9 +25,14 @@ function clock.schedule(ms, fn, label)
     table.insert(clock.queue, { at = clock.now + (tonumber(ms) or 0), seq = clock.seq, fn = fn, label = label })
 end
 
--- Run timers in time order until none are due before `untilMs` (default: all)
+-- Run timers in time order until none are due before `untilMs`. The default horizon
+-- is ten minutes of game time: long enough for any event, and it stops repeating
+-- timers (heartbeats, wave spawners) from running forever.
+clock.HORIZON = 600000
+
 function clock.run(untilMs)
     local guard = 0
+    untilMs = untilMs or (clock.now + clock.HORIZON)
 
     while #clock.queue > 0 do
         table.sort(clock.queue, function(a, b)
@@ -55,7 +60,8 @@ function clock.run(untilMs)
         end
     end
 
-    if untilMs then
+    -- Only jump the clock forward when nothing is left to wait for, or when asked to
+    if #clock.queue > 0 then
         clock.now = math.max(clock.now, untilMs)
     end
 end
@@ -216,6 +222,21 @@ function Entity:getYPos() return self.pos.y end
 function Entity:getZPos() return self.pos.z end
 function Entity:getRotPos() return self.pos.rot end
 
+function Entity:checkDistance(other, y, z)
+    local ox, oy, oz
+
+    if type(other) == "table" and other.pos and getmetatable(other) == getmetatable(self) then
+        ox, oy, oz = other.pos.x, other.pos.y, other.pos.z
+    elseif type(other) == "table" then
+        ox, oy, oz = other.x or other[1], other.y or other[2], other.z or other[3]
+    else
+        ox, oy, oz = other, y, z
+    end
+
+    local dx, dy, dz = self.pos.x - ox, self.pos.y - oy, self.pos.z - oz
+    return math.sqrt(dx * dx + dy * dy + dz * dz)
+end
+
 function Entity:setPos(x, y, z, rot, zoneId)
     if type(x) == "table" then
         x, y, z, rot, zoneId = x.x or x[1], x.y or x[2], x.z or x[3], x.rot or x[4], x.zone or x[5]
@@ -363,6 +384,11 @@ function Entity:getCharVar(name)
 end
 
 function Entity:setCharVar(name, value, expiry)
+    -- LSB takes numbers only; anything else throws on a real server
+    if (expiry ~= nil and type(expiry) ~= "number") or (value ~= nil and type(value) ~= "number") then
+        error(string.format("setCharVar('%s', %s, %s): value and expiry must be numbers", tostring(name), type(value), type(expiry)), 2)
+    end
+
     value = value or 0
     S.record("var", { var = name, value = value, old = self.charVars[name] or 0 })
 
@@ -468,7 +494,7 @@ function Entity:addItem(itemId, qty, ...)
 
     self.inventory[itemId] = (self.inventory[itemId] or 0) + qty
     self.freeSlots         = self.freeSlots - 1
-    S.record("item", { item = itemId, qty = qty, augments = #augments > 0 and augments or nil, walker = S.walkerGiving or nil })
+    S.record("item", { item = itemId, qty = qty, augments = #augments > 0 and augments or nil, walker = S.walkerGiving or nil, treasure = S.treasureGiving or nil })
     return true
 end
 
@@ -504,7 +530,9 @@ function Entity:changeContainerSize(bag, n)    self.containers[bag] = self:getCo
 
 function Entity:addTreasure(itemId, source, rate)
     S.record("treasure", { item = itemId, rate = rate })
+    S.treasureGiving = true
     self:addItem(itemId, 1)
+    S.treasureGiving = false
 end
 
 -- Trades: the walker builds a trade, then the handler confirms and completes it
@@ -565,6 +593,16 @@ function Entity:spawn()
 
     if self.def and self.def.onMobSpawn then
         S.protect("onMobSpawn " .. self.name, self.def.onMobSpawn, self)
+    end
+
+    -- A quest script's autoKill: a party that kills each mob this many ms after it appears
+    if S.autoKill and self.objtype == xi.objType.MOB and S.autoKillBy then
+        local mob = self
+        clock.schedule(S.autoKill, function()
+            if mob:isSpawned() then
+                S.killMob(mob, S.autoKillBy)
+            end
+        end, "autoKill")
     end
 end
 
@@ -683,6 +721,22 @@ function S.getZone(idOrName)
     world.zonesByName[pretty] = zone
     return zone
 end
+
+-- rawget: the zone's __index answers any unknown key with a stub function
+local function zoneVars(zone)
+    local vars = rawget(zone, "localVars")
+
+    if not vars then
+        vars = {}
+        rawset(zone, "localVars", vars)
+    end
+
+    return vars
+end
+
+function Zone:getLocalVar(name)        return zoneVars(self)[name] or 0 end
+function Zone:setLocalVar(name, value) zoneVars(self)[name] = value end
+function Zone:resetLocalVars()         rawset(self, "localVars", {}) end
 
 function Zone:getID()   return self.id end
 function Zone:getName() return self.name end
@@ -1061,6 +1115,8 @@ function S.boot(opts)
     _G.os              = setmetatable({ time = function(t) if t then return os_time(t) end return S.systemTime() end }, { __index = os })
     _G.JstMidnight     = function() return S.systemTime() + 86400 - (S.systemTime() % 86400) end
     _G.NextJstWeek     = function() return S.systemTime() + 7 * 86400 end
+    _G.NextConquestTally = function() return S.systemTime() + 7 * 86400 end
+    _G.NextGameTime    = function() return S.systemTime() + 3600 end
     _G.VanadielTime    = function() return S.systemTime() end
     _G.GetZone         = function(id) return world.zones[id] end
     _G.GetPlayerByID   = function(id) local e = world.entities[id]; return e and e:isPC() and e or nil end
@@ -1080,6 +1136,17 @@ function S.boot(opts)
     end
 
     _G.GetNationRank   = function(nation) return 1 end
+
+    -- luautils::NearLocation / utils nearPosition
+    _G.NearLocation    = function(pos, offset, theta)
+        local total = ((pos.rot or 0) / 256) * 2 * math.pi + theta
+        return {
+            x   = pos.x + math.cos(2 * math.pi - total) * offset,
+            y   = pos.y,
+            z   = pos.z + math.sin(2 * math.pi - total) * offset,
+            rot = pos.rot,
+        }
+    end
 
     -- Any other global function LSB registers: a logged no-op
     local f = io.open(LSB_DIR .. "/src/map/lua/luautils.cpp", "r")
@@ -1144,7 +1211,7 @@ function S.boot(opts)
     dofile(LSB_DIR .. "/scripts/globals/teleports.lua")
 
     -- utils (mask, contains, clamp...) and quest ids: real files, tolerated if they fail
-    for _, file in ipairs({ "scripts/utils/utils.lua", "scripts/globals/quests.lua" }) do
+    for _, file in ipairs({ "scripts/utils/common.lua", "scripts/utils/utils.lua", "scripts/globals/quests.lua", "scripts/globals/missions.lua" }) do
         local okLoad, loadErr = pcall(dofile, LSB_DIR .. "/" .. file)
 
         if not okLoad then

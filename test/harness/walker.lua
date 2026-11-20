@@ -366,8 +366,11 @@ local function perform(quest, player, action, opts)
     end
 
     if action.kind == "trade" then
-        local script = W.script or {}
-        local items  = (script.trades and script.trades[action.name]) or (action.obj and tradeItems(action.obj))
+        local script  = W.script or {}
+        local perStep = script.steps and script.steps[player:getCharVar(quest.info.var) + 1]
+        local items   = (perStep and perStep.trades and perStep.trades[action.name])
+            or (script.trades and script.trades[action.name])
+            or (action.obj and tradeItems(action.obj))
 
         if not items then
             return "trade with no known items"
@@ -471,7 +474,52 @@ function W.walk(quest, player)
         end
 
         if result.repeatable then
+            -- Finish the fight the last step started, so its kill rewards run too
+            for zoneName, list in pairs(quest.entities or {}) do
+                for _, info in ipairs(list) do
+                    local live = info.type == xi.objType.MOB and findLive(zoneName, info.name)
+
+                    if live and live:isSpawned() then
+                        S.moveTo(player, zoneName)
+                        S.killMob(live, player)
+                    end
+                end
+            end
+
+            S.clock.run()
             break
+        end
+
+        -- Still not advanced: fight whatever the step spawned (waves, adds), a few rounds
+        if not advanced then
+            for _ = 1, 10 do
+                local killed = 0
+
+                for zoneName, list in pairs(quest.entities or {}) do
+                    for _, info in ipairs(list) do
+                        if info.type == xi.objType.MOB then
+                            local live = findLive(zoneName, info.name)
+
+                            if live and live:isSpawned() then
+                                S.moveTo(player, zoneName)
+                                S.killMob(live, player)
+                                killed = killed + 1
+                            end
+                        end
+                    end
+                end
+
+                S.clock.run()
+
+                if player:getCharVar(var) ~= value then
+                    advanced = true
+                    break
+                end
+
+                if killed == 0 then
+                    break
+                end
+            end
         end
 
         if not advanced then

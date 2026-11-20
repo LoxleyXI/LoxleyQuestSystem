@@ -67,7 +67,16 @@ local function loadLib()
     end
 
     for _, file in ipairs(files) do
-        dofile(file)
+        if file:match("/LQS[/%.]") then
+            dofile(file)
+        else
+            -- Other libraries sharing the folder: their failures aren't the quest's
+            local okLoad, loadErr = xpcall(function() dofile(file) end, debug.traceback)
+
+            if not okLoad then
+                io.stderr:write("lib " .. file:match("[^/]+$") .. ": " .. tostring(loadErr):match("^[^\n]*") .. "\n")
+            end
+        end
     end
 end
 
@@ -250,6 +259,11 @@ for _, quest in ipairs(W.quests) do
     local logStart  = #S.log
     local errStart  = #S.errors
     local player    = S.newPlayer({ level = 1 })
+
+    if W.script and W.script.autoKill then
+        S.autoKill   = W.script.autoKill
+        S.autoKillBy = player
+    end
     local result    = W.walk(quest, player)
 
     -- The walker's notes explain a stuck quest; on a finished one they're noise
@@ -273,7 +287,8 @@ for _, quest in ipairs(W.quests) do
         if entry.kind == "item" and not entry.walker then
             table.insert(given, entry.item)
 
-            if seen[entry.item] then
+            -- Loot pools may legitimately drop the same item twice
+            if seen[entry.item] and not entry.treasure then
                 repeats[entry.item] = true
             end
 
