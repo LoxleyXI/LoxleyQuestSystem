@@ -103,6 +103,12 @@ end
 
 W.instrument()
 
+-- LQS_HARNESS_EXT: a server's own harness extension, called with the fake server
+-- and the walker (to teach the walker another quest system, say)
+if os.getenv("LQS_HARNESS_EXT") then
+    dofile(os.getenv("LQS_HARNESS_EXT"))(S, W)
+end
+
 -- LQS_VALIDATE=warn: load quests with faults anyway (to survey them)
 if os.getenv("LQS_VALIDATE") then
     LQS.settings.VALIDATE = os.getenv("LQS_VALIDATE")

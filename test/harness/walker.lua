@@ -40,6 +40,22 @@ end
 
 W.quests = {}
 
+-- For harness extensions (LQS_HARNESS_EXT): tag a handler built by some other
+-- quest system, and hand the walker a quest table in LQS's shape
+function W.tag(handler, kind, obj)
+    if handler ~= nil then
+        tags[handler] = { kind = kind, obj = obj }
+    end
+
+    return handler
+end
+
+function W.addQuest(quest)
+    table.insert(W.quests, quest)
+end
+
+W.tagged = tagged
+
 function W.instrument()
     LQS.dialog = tagged("dialog", LQS.dialog)
     LQS.trade  = tagged("trade",  LQS.trade)
@@ -120,6 +136,9 @@ local satisfy =
         end
     end,
 }
+
+-- Extensions add ways to meet their own check keys here
+W.satisfy = satisfy
 
 -- Returns false with a reason when a check can't be met by the walker
 local function meetChecks(player, checkFn)
@@ -247,6 +266,11 @@ end
 
 -- Pick a menu option: the first that does something (has an event or spawns)
 local function chooseOption(menu, tagObj)
+    -- A menu that names its advancing option
+    if tagObj and tagObj.select ~= nil then
+        return tagObj.select
+    end
+
     if tagObj and tagObj.options then
         for i, opt in ipairs(tagObj.options) do
             if opt[2] ~= nil and opt[2] ~= false then
