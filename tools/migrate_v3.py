@@ -363,6 +363,10 @@ def migrate_handlers(src, notes):
         if not mask[m.start()]:
             continue
         params = [p.strip() for p in m.group(1).split(",") if p.strip()]
+        # Step handlers are (player, npc) or (mob, player); a longer list is some
+        # other table's function (a shop callback, say)
+        if len(params) > 2:
+            continue
         roles = ROLES["onMobDeath"] if params and params[0] == "mob" else ROLES["onTrigger"]
         params_open = src.index("(", m.start() + m.group(0).index("function"))
         e = convert_function(src, mask, m.start(), params_open, roles, notes, "step function")
