@@ -81,10 +81,12 @@ end
 -----------------------------------
 -- Quest table helpers
 -----------------------------------
+-- Entities are found by `key` when an adapter sets one (two entities may share a
+-- name in different zones), else by name
 local function entityInfo(quest, name)
     for zoneName, list in pairs(quest.entities or {}) do
         for _, e in ipairs(list) do
-            if e.name == name then
+            if (e.key or e.name) == name then
                 return e, zoneName
             end
         end
@@ -146,9 +148,10 @@ local function meetChecks(player, checkFn)
         return true
     end
 
-    -- LQS.dialog takes a raw check table; steps and menus take an LQS.checks function
+    -- LQS.dialog takes a raw check table; steps and menus take an LQS.checks function.
+    -- A quest from another system compiles its tables its own way (W.compileCheck).
     if type(checkFn) == "table" then
-        checkFn = LQS.checks(checkFn)
+        checkFn = (W.compileCheck or LQS.checks)(checkFn)
     end
 
     local tag = tags[checkFn]
@@ -388,7 +391,7 @@ local function perform(quest, player, action, opts)
         return
     end
 
-    local live = findLive(zoneName, action.name)
+    local live = findLive(zoneName, info.name)
 
     if not live then
         S.fail(string.format("entity '%s' was never created in %s", action.name, zoneName))

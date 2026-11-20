@@ -228,7 +228,7 @@ local function lint(quest)
 
     for zoneName, list in pairs(quest.entities or {}) do
         for _, e in ipairs(list) do
-            names[e.name] = true
+            names[e.key or e.name] = true
 
             local shown = e.packetName or e.name
 
@@ -396,6 +396,8 @@ for _, quest in ipairs(W.quests) do
 
             if e.kind == "var" or (e.kind == "item" and not e.walker) or e.kind == "keyitem" or e.kind == "gil" or e.kind == "currency" or e.kind == "exp" or e.kind == "error" then
                 table.insert(lines, string.format("%s %s %s %s", e.kind, tostring(e.var or e.item or e.ki or e.currency or ""), tostring(e.value or e.qty or e.amount or ""), e.text or ""))
+            elseif verbose and os.getenv("LQS_TIMES") and e.kind == "trigger" then
+                table.insert(lines, string.format("  [trigger @%d] %s", e.t, tostring(e.entity)))
             elseif (verbose or recordDir) and (e.kind == "text" or e.kind == "trigger" or e.kind == "choose" or e.kind == "trade" or e.kind == "death" or e.kind == "spawn" or e.kind == "print") then
                 table.insert(lines, string.format("  [%s] %s", e.kind, tostring(e.text or e.entity or e.option or "")))
             end

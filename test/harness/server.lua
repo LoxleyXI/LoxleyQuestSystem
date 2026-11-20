@@ -453,6 +453,12 @@ function Entity:addMP(mp)    self.mp = math.min(self:getMaxMP(), self.mp + mp) e
 function Entity:isAlive()    return (self.hp or 0) > 0 and not self.dead end
 function Entity:isDead()     return not self:isAlive() end
 
+function Entity:getFameLevel(area)   return 9 end
+function Entity:getLevelCap()        return self.levelCap or 75 end
+function Entity:setLevelCap(cap)     self.levelCap = cap end
+function Entity:getAllianceSize()    return #(self.party or { self }) end
+function Entity:getDeaths()          return self.deaths or {} end
+
 function Entity:getPet()      return nil end
 function Entity:getParty()    return { self } end
 function Entity:getAlliance() return self.party or { self } end
@@ -1084,7 +1090,7 @@ function S.boot(opts)
 
     _G.xi =
     {
-        settings = { main = { GIL_RATE = 1, BAYLD_RATE = 1, EXP_RATE = 1 } },
+        settings = { main = { GIL_RATE = 1, BAYLD_RATE = 1, EXP_RATE = 1, SHOP_PRICE = 1 } },
     }
 
     loadEnums()
@@ -1226,7 +1232,7 @@ function S.boot(opts)
     dofile(LSB_DIR .. "/scripts/globals/teleports.lua")
 
     -- utils (mask, contains, clamp...) and quest ids: real files, tolerated if they fail
-    for _, file in ipairs({ "scripts/utils/common.lua", "scripts/utils/utils.lua", "scripts/globals/quests.lua", "scripts/globals/missions.lua" }) do
+    for _, file in ipairs({ "scripts/utils/common.lua", "scripts/utils/utils.lua", "scripts/globals/quests.lua", "scripts/globals/missions.lua", "scripts/globals/shop.lua" }) do
         local okLoad, loadErr = pcall(dofile, LSB_DIR .. "/" .. file)
 
         if not okLoad then
