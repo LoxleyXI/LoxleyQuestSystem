@@ -278,7 +278,12 @@ local function chooseOption(menu, tagObj)
 
     if tagObj and tagObj.options then
         for i, opt in ipairs(tagObj.options) do
-            if opt[2] ~= nil and opt[2] ~= false then
+            -- positional { label, event }, or named: spawn = true, or an event that advances
+            if
+                (opt[2] ~= nil and opt[2] ~= false) or
+                opt.spawn or
+                (opt.event ~= nil and opt.step ~= false)
+            then
                 return i
             end
         end
