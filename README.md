@@ -407,7 +407,7 @@ LSB_DIR=/path/to/server luajit test/run.lua             # unit tests, then every
 LSB_DIR=/path/to/server luajit test/run.lua questpack/bastok/lqs_bug_report.lua -v
 ```
 
-`-v` prints each quest's transcript (dialog, choices, vars, items); `--record <dir>` saves the var and item part of it, to compare a quest before and after a change.
+`-v` prints each quest's transcript (dialog, choices, vars, items); `--record <dir>` saves it (one file per quest, named by var and quest name), to compare a quest before and after a change.
 
 Your own quests run the same way. Point the harness at your server's files:
 
@@ -419,6 +419,7 @@ Your own quests run the same way. Point the harness at your server's files:
 | `LQS_PRELOAD` | files or folders loaded before LQS (your enums and shared systems), `:` separated |
 | `LQS_BINDINGS` | your C++ modules, so methods they add to `CBaseEntity` are known, `:` separated |
 | `LQS_SCRIPTS` | folder of quest scripts (below) |
+| `LQS_HARNESS_EXT` | a Lua file returning `function(S, W)`: teaches the walker your own check keys (`W.satisfy.key = function(player, value) ... end`) and prepares the player (`table.insert(W.playerSetup, function(player, quest) ... end)`) |
 
 Most quests need nothing more. A quest with a hand-written trade or an `eval` check needs a script telling the walker what to do, named after its var (`[LQS]VINE_WARD` is `LQS_VINE_WARD.lua`):
 

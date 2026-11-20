@@ -301,6 +301,10 @@ for _, quest in ipairs(W.quests) do
     local errStart  = #S.errors
     local player    = S.newPlayer({ level = 1 })
 
+    for _, setup in ipairs(W.playerSetup) do
+        S.protect("player setup", setup, player, quest)
+    end
+
     if W.script and W.script.autoKill then
         S.autoKill   = W.script.autoKill
         S.autoKillBy = player

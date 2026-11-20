@@ -159,6 +159,10 @@ local satisfy =
 -- Extensions add ways to meet their own check keys here
 W.satisfy = satisfy
 
+-- Extensions prepare the walking player here: fn(player, quest), before the walk
+-- (a server whose questAvailable hook gates quests by player type, say)
+W.playerSetup = {}
+
 -- Returns false with a reason when a check can't be met by the walker
 local function meetChecks(player, checkFn)
     if checkFn == nil then
