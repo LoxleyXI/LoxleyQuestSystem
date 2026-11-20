@@ -358,7 +358,7 @@ LQS.add = function(source, tbl)
                     y           = entity.pos[2],
                     z           = entity.pos[3],
                     rotation    = entity.pos[4] or 0,
-                    widescan    = 1,
+                    widescan    = entity.widescan or 1,
                 }
 
                 if entity.marker ~= nil then

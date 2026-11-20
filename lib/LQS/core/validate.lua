@@ -26,7 +26,7 @@ end
 local ENTITY_KEYS = set({
     "name", "packetName", "type", "look", "pos", "marker", "hidden", "hideName", "hideHP",
     "untargetable", "animation", "size", "hitbox", "flags", "namevis", "listener", "listeners",
-    "default", "dialog", "onTrigger", "entity", "key", "area",
+    "default", "dialog", "onTrigger", "entity", "key", "area", "widescan",
     -- mobs
     "base", "groupId", "groupZoneId", "level", "minLevel", "maxLevel", "hp", "mods", "mobMods",
     "effects", "immunities", "skillList", "spellList", "mixins", "jobSpecial", "detection",

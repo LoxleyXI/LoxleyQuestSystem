@@ -155,7 +155,14 @@ function P.showDefault(ctx)
     local default = defaultOf(ctx.entity or {})
 
     if default ~= nil then
-        LQS.event(ctx.player, ctx.npc, default, ctx)
+        -- A marker (sparkle, sign) is an object: it speaks without a name
+        local speaker = ctx.npc
+
+        if ctx.entity and ctx.entity.marker ~= nil then
+            speaker = nil
+        end
+
+        LQS.event(ctx.player, speaker, default, ctx)
     end
 end
 
