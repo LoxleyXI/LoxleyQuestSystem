@@ -26,13 +26,13 @@ end
 local ENTITY_KEYS = set({
     "name", "packetName", "type", "look", "pos", "marker", "hidden", "hideName", "hideHP",
     "untargetable", "animation", "size", "hitbox", "flags", "namevis", "listener", "listeners",
-    "default", "dialog", "onTrigger", "entity",
+    "default", "dialog", "onTrigger", "entity", "key", "area",
     -- mobs
     "base", "groupId", "groupZoneId", "level", "minLevel", "maxLevel", "hp", "mods", "mobMods",
     "effects", "immunities", "skillList", "spellList", "mixins", "jobSpecial", "detection",
     "aeffect", "loot", "pool", "points", "tally", "title", "restore", "delCap", "util", "dropID",
     "after", "onMobSpawn", "onMobFight", "onMobRoam", "onMobDisengage", "onMobDeath",
-    "onMobInitialize", "onAdditionalEffect",
+    "onMobInitialize", "onAdditionalEffect", "onMobSpellChoose", "onSpellPrecast", "job", "animationsub",
 })
 
 local COMMON = { "check", "event", "reward", "step", "accept", "complete", "mission", "music", "as", "object", "after", "obj" }
@@ -131,8 +131,14 @@ function P.validateQuest(tbl)
             if type(e.name) ~= "string" then
                 err(path, "has no name")
             else
+                -- Steps may name it by key or by name; events by name
                 names[e.name] = e
-                path = string.format("entities[%q]", e.name)
+
+                if e.key ~= nil then
+                    names[e.key] = e
+                end
+
+                path = string.format("entities[%q]", e.key or e.name)
             end
 
             for key in pairs(e) do
@@ -285,7 +291,7 @@ function P.validateQuest(tbl)
     end
 
     for name, e in pairs(names) do
-        if not used[name] and e.type ~= xi.objType.MOB and e.onTrigger == nil then
+        if not (used[e.name] or (e.key and used[e.key])) and e.type ~= xi.objType.MOB and e.onTrigger == nil then
             -- A plain NPC with only a default is fine; note it in case it's a typo
             if e.default == nil and e.dialog == nil then
                 warn(string.format("entities[%q]", name), "no step uses it and it has no default")

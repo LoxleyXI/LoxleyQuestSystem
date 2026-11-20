@@ -132,7 +132,8 @@ function P.getStepHint(tbl, step, entityZone, entityType)
 
     for entityName, stepInfo in pairs(step) do
         if entityName ~= "check" then
-            local detail = fmt("{} in {}", string.gsub(entityName, "_", " "), entityZone[entityName])
+            local label  = entityZone.label and entityZone.label[entityName] or entityName
+            local detail = fmt("{} in {}", string.gsub(label, "_", " "), entityZone[entityName])
 
             if entityType[entityName] == xi.objType.MOB then
                 return "Defeat " .. detail
@@ -218,12 +219,19 @@ LQS.add = function(source, tbl)
         local entityZone = {}
         local entityType = {}
 
+        local entityLabel = {}
+
         for zoneName, entityList in pairs(tbl.entities) do
             for _, entityInfo in pairs(entityList) do
-                entityZone[entityInfo.name] = string.gsub(zoneName, "_", " ")
-                entityType[entityInfo.name] = entityInfo.type or xi.objType.NPC
+                for _, id in ipairs({ entityInfo.name, entityInfo.key }) do
+                    entityZone[id]  = string.gsub(zoneName, "_", " ")
+                    entityType[id]  = entityInfo.type or xi.objType.NPC
+                    entityLabel[id] = entityInfo.packetName or entityInfo.name
+                end
             end
         end
+
+        entityZone.label = entityLabel
 
         for _, step in pairs(tbl.steps) do
             table.insert(LQS.registry[registryName].hint, P.getStepHint(tbl, step, entityZone, entityType))

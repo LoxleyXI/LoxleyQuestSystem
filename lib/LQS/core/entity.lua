@@ -75,10 +75,19 @@ function P.entitySetup(dynamicEntity, tbl, entity)
         end
 
         dynamicEntity.onMobInitialize = function(mob)
+            -- A job change resets mods, so it goes first (use sparingly)
+            if entity.job ~= nil then
+                mob:changeJob(entity.job)
+            end
+
             mob:setMobMod(xi.mobMod.DETECTION, entity.detection or 0x08)
             mob:setMobMod(xi.mobMod.CHECK_AS_NM,  1)
             mob:setMobMod(xi.mobMod.CHARMABLE,    0)
             mob:setMobMod(xi.mobMod.ALLI_HATE,   30)
+
+            if entity.animationsub ~= nil then
+                mob:setMobMod(xi.mobMod.SPAWN_ANIMATIONSUB, entity.animationsub)
+            end
 
             if entity.aeffect ~= nil or entity.onAdditionalEffect ~= nil then
                 mob:setMobMod(xi.mobMod.ADD_EFFECT, 1)
@@ -133,6 +142,18 @@ function P.entitySetup(dynamicEntity, tbl, entity)
 
             if mob:getLocalVar("disengaged") > 0 then
                 DespawnMob(mob:getID())
+            end
+        end
+
+        if entity.onMobSpellChoose ~= nil then
+            dynamicEntity.onMobSpellChoose = function(mob, target, spellId)
+                return entity.onMobSpellChoose(mob, target, spellId)
+            end
+        end
+
+        if entity.onSpellPrecast ~= nil then
+            dynamicEntity.onSpellPrecast = function(mob, spell)
+                entity.onSpellPrecast(mob, spell)
             end
         end
 

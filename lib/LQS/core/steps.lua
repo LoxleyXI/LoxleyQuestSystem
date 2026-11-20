@@ -107,7 +107,7 @@ function P.normalizeSteps(tbl)
 
     for _, list in pairs(tbl.entities or {}) do
         for _, entity in ipairs(list) do
-            isMob[entity.name] = entity.type == xi.objType.MOB
+            isMob[entity.key or entity.name] = entity.type == xi.objType.MOB
         end
     end
 
@@ -180,8 +180,9 @@ end
 
 -- The handler for this player's step, if its checks pass
 local function stepHandler(tbl, entity, ctx, event)
+    -- Steps name an entity by its key (two entities may share a name) or its name
     local stepHandlers = tbl.handlers[ctx.step]
-    local h            = stepHandlers and stepHandlers[entity.name]
+    local h            = stepHandlers and stepHandlers[entity.key or entity.name]
 
     if
         h == nil or

@@ -509,4 +509,38 @@ test("event: 2.x row names still work in direct LQS.event calls", wrap(function(
     T.ok(narrated, "emotion row narrated")
 end))
 
+
+test("keys: two entities with one name in different zones get their own steps", wrap(function()
+    T.quest({
+        entities =
+        {
+            [zoneName]       = { T.npc("Reisle", { key = "REISLE_1" }) },
+            ["Bastok_Mines"] = { T.npc("Reisle", { key = "REISLE_2" }) },
+        },
+        steps =
+        {
+            { REISLE_1 = LQS.dialog({ event = { "Meet me in the Mines." } }) },
+            { REISLE_2 = LQS.dialog({ event = { "You came!" } }) },
+        },
+    })
+
+    local p = T.player()
+    local mines = S.getZone("Bastok_Mines"):queryEntitiesByName("DE_Reisle")[1]
+
+    S.moveTo(p, "Bastok_Mines")
+    S.protect("mines", mines.def.onTrigger, p, mines)
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 0, "the Mines Reisle has nothing at step 1")
+
+    S.moveTo(p, zoneName)
+    T.trigger(p, "Reisle")
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "the first Reisle starts it")
+
+    S.moveTo(p, "Bastok_Mines")
+    S.protect("mines", mines.def.onTrigger, p, mines)
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 2, "the Mines Reisle finishes it")
+end))
+
 return T

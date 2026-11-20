@@ -107,6 +107,8 @@ A step entry is a builder (`LQS.dialog`, `LQS.trade`, `LQS.menu`, `LQS.defeat`, 
 
 A `check` on a step, or on a handler table, means the NPC shows its default until the player meets it.
 
+Steps name entities by `name`. Two entities with the same name in different zones (the same NPC met twice, say) each take a `key = "REISLE_2"`, and steps name the key.
+
 ### ctx
 Every handler receives one `ctx`:
 
