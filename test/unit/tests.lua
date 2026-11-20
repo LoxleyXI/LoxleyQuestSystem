@@ -1,0 +1,379 @@
+-----------------------------------
+-- LQS unit tests: the cases
+-----------------------------------
+-- Each test is { name, fn(S, T) }. fn raises an error to fail.
+-- Nothing here touches LQS until a test runs, so the list loads without a server.
+-----------------------------------
+local T = { list = {}, byName = {} }
+
+local function test(name, fn, opts)
+    local t = { name = name, fn = fn, allowErrors = opts and opts.allowErrors }
+    table.insert(T.list, t)
+    T.byName[name] = t
+end
+
+-----------------------------------
+-- Helpers
+-----------------------------------
+local S -- set when a test runs
+
+function T.eq(actual, expected, what)
+    if actual ~= expected then
+        error(string.format("%s: expected %s, got %s", what or "value", tostring(expected), tostring(actual)), 2)
+    end
+end
+
+function T.ok(value, what)
+    if not value then
+        error((what or "expected true") , 2)
+    end
+end
+
+local zoneName = "Upper_Jeuno"
+
+-- Register a quest and build its entities. Returns the quest table.
+function T.quest(tbl)
+    tbl.info = tbl.info or {}
+    tbl.info.name = tbl.info.name or "Unit Quest"
+    tbl.info.var  = tbl.info.var or "[LQS]UNIT"
+    local m = Module:new("unit_" .. tbl.info.name)
+    LQS.add(m, tbl)
+    S.initZones()
+    return tbl
+end
+
+function T.npc(name, extra)
+    local e = { name = name, type = xi.objType.NPC, pos = { 0, 0, 0, 0 }, default = { "..." } }
+    for k, v in pairs(extra or {}) do e[k] = v end
+    return e
+end
+
+function T.mob(name, extra)
+    local e = { name = name, type = xi.objType.MOB, pos = { 0, 0, 0, 0 }, base = { 245, 1 }, level = 10 }
+    for k, v in pairs(extra or {}) do e[k] = v end
+    return e
+end
+
+function T.player(opts)
+    opts = opts or {}
+    opts.zone = opts.zone or zoneName
+    return S.newPlayer(opts)
+end
+
+function T.entity(name)
+    return S.getZone(zoneName):queryEntitiesByName("DE_" .. name)[1]
+end
+
+function T.trigger(player, name)
+    local e = T.entity(name)
+    S.protect("onTrigger " .. name, e.def.onTrigger, player, e)
+end
+
+function T.trade(player, name, items)
+    local e = T.entity(name)
+    local slots = {}
+
+    for _, it in ipairs(items) do
+        player:addItem(it[1], it[2])
+        table.insert(slots, { id = it[1], qty = it[2] })
+    end
+
+    local trade = { slots = slots, confirmed = {} }
+    function trade:getSlotCount() return #self.slots end
+    function trade:getItemId(i) return self.slots[i + 1] and self.slots[i + 1].id or 0 end
+    function trade:getSlotQty(i) return self.slots[i + 1] and self.slots[i + 1].qty or 0 end
+    function trade:getItemCount() local n = 0 for _, s in ipairs(self.slots) do n = n + s.qty end return n end
+    function trade:getItemQty(id) local n = 0 for _, s in ipairs(self.slots) do if s.id == id then n = n + s.qty end end return n end
+    function trade:confirmItem(id, qty) self.confirmed[id] = (self.confirmed[id] or 0) + (qty or 1) end
+
+    player.currentTrade = trade
+    S.protect("onTrade " .. name, e.def.onTrade, player, e, trade)
+    return trade
+end
+
+function T.choose(player, index)
+    local menu = player.openMenu
+    T.ok(menu, "no menu open")
+    player.openMenu = nil
+    S.protect("menu option", menu.options[index][2], player)
+end
+
+function T.run()
+    S.clock.run()
+end
+
+function T.count(kind, field, value)
+    local n = 0
+    for _, e in ipairs(S.log) do
+        if e.kind == kind and (field == nil or e[field] == value) then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+local function wrap(fn)
+    return function(server, t)
+        S = server
+        fn(t)
+    end
+end
+
+-----------------------------------
+-- Checks
+-----------------------------------
+test("checks: level, vareq, item, gil", wrap(function()
+    local p = T.player({ level = 10, gil = 50 })
+    T.eq(LQS.checks({ level = 10 })(p), true, "level 10 >= 10")
+    T.eq(LQS.checks({ level = 11 })(p), false, "level 10 >= 11")
+    T.eq(LQS.checks({ vareq = { "[X]", 0 } })(p), true, "unset var is 0")
+    p:setCharVar("[X]", 3)
+    T.eq(LQS.checks({ vareq = { "[X]", 3 } })(p), true, "var 3")
+    T.eq(LQS.checks({ item = 640 })(p), false, "no copper ore")
+    p:addItem(640, 1)
+    T.eq(LQS.checks({ item = 640, gil = 50 })(p), true, "copper ore and 50 gil")
+    T.eq(LQS.checks({ gil = 51 })(p), false, "51 gil")
+end))
+
+test("checks: an unknown key fails the check instead of crashing", wrap(function()
+    local p = T.player()
+    local ok, result = pcall(function() return LQS.checks({ lvl = 10 })(p) end)
+    T.ok(ok, "LQS.checks crashed on an unknown key: " .. tostring(result))
+    T.eq(result, false, "unknown check result")
+end), { allowErrors = true })
+
+test("checks: mixed-case keys work (hasTeleport)", wrap(function()
+    local p = T.player()
+    local ok, result = pcall(function() return LQS.checks({ hasTeleport = 3 })(p) end)
+    T.ok(ok, "crashed: " .. tostring(result))
+    T.eq(result, false, "no teleport yet")
+    p.teleports[p.nation .. ":" .. 8] = true
+    T.eq(LQS.checks({ hasTeleport = 3 })(p), true, "teleport unlocked")
+end), { allowErrors = true })
+
+-----------------------------------
+-- pickItem and eventDelay
+-----------------------------------
+test("pickItem: follows the weights", wrap(function()
+    local pool = { { 750, "a" }, { 250, "b" } }
+    local counts = { a = 0, b = 0 }
+
+    for _ = 1, 4000 do
+        local r = LQS.pickItem(pool)
+        counts[r[2]] = counts[r[2]] + 1
+    end
+
+    T.ok(counts.a > 2800 and counts.a < 3200, "a picked " .. counts.a .. " of 4000 (want about 3000)")
+end))
+
+test("eventDelay: strings 1500, tables 0, delay and duration as given", wrap(function()
+    T.eq(LQS.eventDelay({ "a", "b" }), 3000, "two lines")
+    T.eq(LQS.eventDelay({ { emote = 1 }, "a" }), 1500, "emote then a line")
+    T.eq(LQS.eventDelay({ { delay = 700 }, "a" }), 2200, "delay then a line")
+    T.eq(LQS.eventDelay({ { animation = 48, duration = 3000 } }), 3000, "duration")
+end))
+
+test("eventDelay: an empty event doesn't crash", wrap(function()
+    local ok, err = pcall(LQS.eventDelay, {})
+    T.ok(ok, "crashed: " .. tostring(err))
+end), { allowErrors = true })
+
+-----------------------------------
+-- Dialog
+-----------------------------------
+test("dialog: reward given once when the player spams the NPC", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { Giver = LQS.dialog({ reward = 4198, event = { "Here.", "Take it." } }) } },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Giver")
+    T.trigger(p, "Giver")
+    T.run()
+    T.trigger(p, "Giver")
+    T.run()
+
+    T.eq(p:getItemCount(4198), 1, "rewards")
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "quest var")
+end))
+
+test("dialog: full bags keep the step, and the reward comes once there's room", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { Giver = LQS.dialog({ reward = 4198, event = { "Here." } }) } },
+    })
+
+    local p = T.player({ freeSlots = 0 })
+    T.trigger(p, "Giver")
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 0, "var after a failed reward")
+
+    p.freeSlots = 5
+    T.trigger(p, "Giver")
+    T.run()
+    T.eq(p:getItemCount(4198), 1, "reward after making room")
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "var after the reward")
+end))
+
+test("dialog: augmented reward fails cleanly when the item can't be obtained", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { Giver = LQS.dialog({ reward = { item = 13227, augment = { 1, 9 } }, event = { "Here." } }) } },
+    })
+
+    local p = T.player()
+    p.canObtainItem = function() return false end
+    p.addItem = function() return false end
+    T.trigger(p, "Giver")
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 0, "var when the augmented item wasn't given")
+end))
+
+-----------------------------------
+-- Trade
+-----------------------------------
+test("trade: the right items advance and are taken; wrong ones are declined", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Taker") } },
+        steps = { { Taker = { onTrade = LQS.trade({
+            required = { { 640, 3 } },
+            reward   = 4198,
+            accepted = { "Thanks." },
+            declined = { "No." },
+        }) } } },
+    })
+
+    local p = T.player()
+    T.trade(p, "Taker", { { 641, 3 } })
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 0, "var after the wrong items")
+
+    T.trade(p, "Taker", { { 640, 3 } })
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "var after the right items")
+    T.eq(p:getItemCount(640), 0, "copper ore taken")
+    T.eq(p:getItemCount(4198), 1, "reward")
+end))
+
+test("trade: a failed reward releases the lock so the player can trade again", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Taker") } },
+        steps = { { Taker = { onTrade = LQS.trade({
+            required = 640,
+            reward   = { item = 4198 },
+            accepted = { "Thanks." },
+            declined = { "No." },
+        }) } } },
+    })
+
+    local p = T.player({ freeSlots = 1 })
+    T.trade(p, "Taker", { { 640, 1 } }) -- fills the last slot with the ore itself
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 0, "var after a failed reward")
+
+    p.freeSlots = 5
+    T.trade(p, "Taker", { { 640, 1 } })
+    T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "var after trading again with room")
+end), { allowErrors = true })
+
+test("trade: spawning two mobs gives the reward and the step once", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Altar"), T.mob("Imp"), T.mob("Fiend") } },
+        steps = { { Altar = { onTrade = LQS.trade({
+            required = 640,
+            reward   = 4198,
+            spawn    = { "Imp", "Fiend" },
+            accepted = { "Something stirs." },
+            declined = { "No." },
+        }) } } },
+    })
+
+    local p = T.player()
+    T.trade(p, "Altar", { { 640, 1 } })
+    T.run()
+
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "quest var")
+    T.eq(p:getItemCount(4198), 1, "rewards")
+    T.ok(T.entity("Imp"):isSpawned() and T.entity("Fiend"):isSpawned(), "both mobs spawned")
+end), { allowErrors = true })
+
+-----------------------------------
+-- Menu
+-----------------------------------
+test("menu: an option's item reward is that item", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Chooser") } },
+        steps = { { Chooser = LQS.menu({
+            title   = "Take one?",
+            options = {
+                { "No thanks." },
+                { "Yes please.", { "Here you go." }, 4198 },
+            },
+        }) } },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Chooser")
+    T.run()
+    T.choose(p, 2)
+    T.run()
+
+    T.eq(p:getItemCount(4198), 1, "item from the option")
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "quest var")
+end), { allowErrors = true })
+
+-----------------------------------
+-- Defeat
+-----------------------------------
+local function defeatQuest(defeat, handlerCheck)
+    return T.quest({
+        entities = { [zoneName] = { T.npc("Spot"), T.mob("Beast") } },
+        steps = {
+            {
+                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", true } } }),
+                Beast = handlerCheck and { onMobDeath = defeat, check = handlerCheck } or defeat,
+            },
+        },
+    })
+end
+
+local function fight(p)
+    T.trigger(p, "Spot")
+    T.run()
+    T.choose(p, 2)
+    T.run()
+    T.ok(T.entity("Beast"):isSpawned(), "Beast spawned")
+    S.killMob(T.entity("Beast"), p)
+    T.run()
+end
+
+test("defeat: killing the mob advances the step", wrap(function()
+    defeatQuest(LQS.defeat({ mobs = { "Beast" } }))
+    local p = T.player()
+    fight(p)
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "quest var")
+end))
+
+test("defeat: a step check on the mob handler doesn't crash", wrap(function()
+    defeatQuest(LQS.defeat({ mobs = { "Beast" } }), LQS.checks({ level = 1 }))
+    local p = T.player()
+    fight(p)
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "quest var")
+end), { allowErrors = true })
+
+test("defeat: points with a multiplier don't crash", wrap(function()
+    defeatQuest(LQS.defeat({
+        mobs       = { "Beast" },
+        points     = 10,
+        pointsVar  = "[UNIT]POINTS",
+        message    = "{} gains {} points.",
+        multiplier = { var = "MULT", range = { 1, 100 } },
+    }))
+    local p = T.player()
+    fight(p)
+    T.ok(p:getCharVar("[UNIT]POINTS") > 0, "points given")
+end), { allowErrors = true })
+
+return T

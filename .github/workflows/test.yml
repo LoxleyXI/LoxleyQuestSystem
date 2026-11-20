@@ -1,0 +1,55 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, v3]
+    paths: ['lib/**', 'commands/**', 'cpp/**', 'questpack/**', 'npcpack/**', 'test/**', '.github/workflows/test.yml']
+  pull_request:
+    paths: ['lib/**', 'commands/**', 'cpp/**', 'questpack/**', 'npcpack/**', 'test/**', '.github/workflows/test.yml']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: LuaJIT
+        run: sudo apt-get install -y luajit
+
+      # Only the LandSandBoat files the harness reads: enums, a few globals, the binding lists
+      - name: LandSandBoat (sparse)
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/LandSandBoat/server.git lsb
+          cd lsb
+          git sparse-checkout set --no-cone \
+            /scripts/enum /scripts/utils \
+            /scripts/globals/npc_util.lua /scripts/globals/teleports.lua /scripts/globals/quests.lua \
+            /data/enums /data/status_effects.yaml \
+            /src/map/lua/lua_base_entity.cpp /src/map/lua/lua_baseentity.cpp /src/map/lua/luautils.cpp
+          echo "LSB_DIR=$PWD" >> "$GITHUB_ENV"
+          echo "LandSandBoat $(git log -1 --format='%h %ci')"
+
+      # A change to LQS itself (or the tests) runs everything; a change to quests alone runs those quests
+      - name: Pick tests
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          else
+            changed=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo lib/)
+          fi
+
+          if echo "$changed" | grep -qE '^(lib|commands|cpp|test)/|^\.github/'; then
+            echo "TARGET=" >> "$GITHUB_ENV"
+            echo "LQS changed: running everything"
+          else
+            quests=$(echo "$changed" | grep -E '^(questpack|npcpack)/.*\.lua$' | while read f; do [ -f "$f" ] && echo "$f"; done | tr '\n' ' ')
+            echo "TARGET=$quests" >> "$GITHUB_ENV"
+            echo "Quests changed: $quests"
+          fi
+
+      # No targets: unit tests and every quest. Targets: just those quests.
+      - name: Test
+        run: luajit test/run.lua $TARGET
