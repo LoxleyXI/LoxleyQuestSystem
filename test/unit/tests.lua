@@ -376,4 +376,44 @@ test("defeat: points with a multiplier don't crash", wrap(function()
     T.ok(p:getCharVar("[UNIT]POINTS") > 0, "points given")
 end), { allowErrors = true })
 
+
+test("defeat: an entity tally counts once per member in a party", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Spot"), T.mob("Beast", { tally = "[UNIT]TALLY" }) } },
+        steps = {
+            {
+                Spot  = LQS.menu({ title = "Poke it?", spawn = { "Beast" }, options = { { "No." }, { "Yes.", true } } }),
+                Beast = LQS.defeat({ mobs = { "Beast" } }),
+            },
+        },
+    })
+
+    local a = T.player({ name = "A" })
+    local b = T.player({ name = "B" })
+    a.party, b.party = { a, b }, { a, b }
+
+    T.trigger(a, "Spot")
+    T.run()
+    T.choose(a, 2)
+    T.run()
+    S.killMob(T.entity("Beast"), a)
+    T.run()
+
+    T.eq(a:getCharVar("[UNIT]TALLY"), 1, "A's tally")
+    T.eq(b:getCharVar("[UNIT]TALLY"), 1, "B's tally")
+    T.eq(b:getCharVar("[LQS]UNIT"), 1, "B's quest var")
+end))
+
+test("dialog: a failed check on an NPC with default shows the default", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Gate", { default = { "Closed." } }) } },
+        steps = { { Gate = LQS.dialog({ check = { level = 99 }, event = { "Open." } }) } },
+    })
+
+    local p = T.player({ level = 1 })
+    T.trigger(p, "Gate")
+    T.run()
+    T.eq(#S.errors, 0, "server errors")
+end), { allowErrors = true })
+
 return T

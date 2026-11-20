@@ -234,10 +234,10 @@ P.getMobSteps = function(event, var, entity, steps, entities)
             end)
         end
 
-        if entity.tally ~= nil then
-            P.allPlayers(player, function(member)
-                member:incrementCharVar(entity.tally, 1)
-            end)
+        -- LSB calls onMobDeath once per credited member, so credit only this one
+        -- (looping the party here counted each kill once per member, for everyone)
+        if entity.tally ~= nil and player:isPC() then
+            player:incrementCharVar(entity.tally, 1)
         end
 
         local step = player:getCharVar(var) + 1

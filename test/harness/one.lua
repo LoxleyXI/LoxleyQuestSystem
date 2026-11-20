@@ -103,6 +103,11 @@ end
 
 W.instrument()
 
+-- LQS_PERTURB=n: allocate junk first, to show whether a quest's results depend on memory layout
+for _ = 1, tonumber(os.getenv("LQS_PERTURB") or 0) do
+    local junk = { {}, function() end }
+end
+
 local errorsBefore = #S.errors
 ok, err = xpcall(function() dofile(questFile) end, debug.traceback)
 

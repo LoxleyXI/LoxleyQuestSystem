@@ -58,13 +58,28 @@ end
 
 local totals = { PASS = 0, WARN = 0, FAIL = 0, SKIP = 0 }
 
+-- Run each test with address randomisation off where we can: LuaJIT orders pairs()
+-- over table- and function-keyed tables by address, so a quest that iterates one
+-- would otherwise vary between runs (and between before/after transcripts).
+local launcher = "luajit "
+
+do
+    local p = io.popen("setarch $(uname -m) -R true 2>/dev/null && echo ok")
+    local ok = p:read("*a")
+    p:close()
+
+    if ok:match("ok") then
+        launcher = "setarch $(uname -m) -R luajit "
+    end
+end
+
 -----------------------------------
 -- Unit tests
 -----------------------------------
 local unitFailed = false
 
 if #targets == 0 or unitOnly then
-    local p = io.popen("luajit " .. shell(here .. "unit/run.lua") .. " 2>&1")
+    local p = io.popen(launcher .. shell(here .. "unit/run.lua") .. " 2>&1")
     local output = p:read("*a")
     local ok = p:close()
     io.write(output)
@@ -96,7 +111,7 @@ end
 local vars = {}
 
 for _, file in ipairs(files) do
-    local cmd = "luajit " .. shell(here .. "harness/one.lua") .. " " .. shell(file)
+    local cmd = launcher .. shell(here .. "harness/one.lua") .. " " .. shell(file)
 
     for _, a in ipairs(passArgs) do
         cmd = cmd .. " " .. shell(a)

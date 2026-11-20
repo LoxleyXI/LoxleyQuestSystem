@@ -33,7 +33,8 @@ LQS.dialog = function(obj)
             if obj.fail ~= nil then
                 LQS.event(player, npc, obj.fail)
             else
-                LQS.event(player, npc, tbl.dialog.DEFAULT)
+                -- The entity's default: `default`, or the older dialog.DEFAULT
+                LQS.event(player, npc, tbl.default or (tbl.dialog and tbl.dialog.DEFAULT))
             end
 
             return
