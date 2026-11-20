@@ -12,7 +12,12 @@
 -----------------------------------
 local S = {}
 
-local LSB_DIR = os.getenv("LSB_DIR") or (os.getenv("HOME") .. "/dev/cexi/catseyexi")
+local LSB_DIR = os.getenv("LSB_DIR")
+
+if not LSB_DIR or LSB_DIR == "" then
+    io.stderr:write("LSB_DIR is not set: point it at a LandSandBoat checkout\n")
+    os.exit(2)
+end
 
 -----------------------------------
 -- Clock and timers
