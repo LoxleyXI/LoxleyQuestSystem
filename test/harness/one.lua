@@ -17,6 +17,16 @@ package.path = here .. "../?.lua;" .. package.path
 local args = { ... }
 local questFile, verbose, recordDir
 
+-- run.lua passes the options on stdin (LQS_OPTS_STDIN) as two lines of fixed
+-- length, verbose then the record folder, so a quest runs with the same command
+-- line and the same allocations whatever the options: either would move memory
+-- addresses, and with them pairs() order over table-keyed tables
+local stdinOpts
+
+if os.getenv("LQS_OPTS_STDIN") then
+    stdinOpts = { io.read("*l"), io.read("*l") }
+end
+
 local i = 1
 while i <= #args do
     if args[i] == "--verbose" or args[i] == "-v" then
@@ -28,6 +38,15 @@ while i <= #args do
         questFile = args[i]
     end
     i = i + 1
+end
+
+if stdinOpts then
+    verbose   = stdinOpts[1]:sub(1, 1) == "1"
+    recordDir = stdinOpts[2]:match("^(.-)%s*$")
+
+    if recordDir == "" then
+        recordDir = nil
+    end
 end
 
 if not questFile then

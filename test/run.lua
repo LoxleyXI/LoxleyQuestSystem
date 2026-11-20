@@ -14,8 +14,9 @@
 local here = debug.getinfo(1, "S").source:sub(2):match("(.*/)") or "./"
 local root = here .. "../"
 
-local targets, passArgs = {}, {}
+local targets = {}
 local unitOnly, quiet = false, false
+local verboseOpt, recordOpt = false, nil
 
 local args = { ... }
 local i = 1
@@ -27,11 +28,10 @@ while i <= #args do
     elseif a == "--quiet" or a == "-q" then
         quiet = true
     elseif a == "--verbose" or a == "-v" then
-        table.insert(passArgs, a)
+        verboseOpt = true
     elseif a == "--record" then
-        table.insert(passArgs, a)
         i = i + 1
-        table.insert(passArgs, args[i])
+        recordOpt = args[i]
         os.execute("mkdir -p '" .. args[i] .. "'")
     else
         table.insert(targets, a)
@@ -116,11 +116,15 @@ end
 local vars = {}
 
 for _, file in ipairs(files) do
-    local cmd = launcher .. shell(here .. "harness/one.lua") .. " " .. shell(file)
-
-    for _, a in ipairs(passArgs) do
-        cmd = cmd .. " " .. shell(a)
+    -- Options go on stdin as two fixed-length lines (see harness/one.lua), so the
+    -- command line and the memory layout are the same whatever the options
+    local function pad(str, width)
+        return str .. string.rep(" ", width - #str)
     end
+
+    local opts = pad(verboseOpt and "1" or "0", 63) .. "\n" .. pad(recordOpt or "", 1023) .. "\n"
+
+    local cmd = "printf %s " .. shell(opts) .. " | LQS_OPTS_STDIN=1 " .. launcher .. shell(here .. "harness/one.lua") .. " " .. shell(file)
 
     local p = io.popen(cmd .. " 2>&1")
     local output = p:read("*a")
