@@ -119,6 +119,11 @@ end
 local function show(ctx, case, event)
     event = P.eventOf(ctx, event)
 
+    -- No event (a trade that only spawns, say): nothing to show
+    if event == nil then
+        return
+    end
+
     if not P.eventSpawn(case, ctx.player, ctx.npc, event) then
         -- An object (sign, marker) speaks without a name
         local speaker = ctx.npc
@@ -139,7 +144,8 @@ local function takeCase(ctx, obj, case)
         player:incrementCharVar(case.tally, ctx.trade:getItemCount())
     end
 
-    local delay = LQS.eventDelay(P.eventOf(ctx, case.accepted))
+    local accepted = P.eventOf(ctx, case.accepted)
+    local delay    = accepted ~= nil and LQS.eventDelay(accepted) or 0
 
     show(ctx, case, case.accepted)
 

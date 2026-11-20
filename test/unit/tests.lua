@@ -699,4 +699,20 @@ test("validate: a handler with the 2.x (player, npc) form refuses the quest", wr
     }), "a (player, npc) handler should refuse the quest")
 end), { allowErrors = true })
 
+
+test("trade: a trade that only spawns says nothing and logs nothing", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Soil", { key = "SOIL" }), T.mob("Beast", { key = "BEAST" }) } },
+        steps = { { SOIL = { onTrade = LQS.trade({ required = { { 4096, 1 } }, spawn = "BEAST", step = false }) }, BEAST = LQS.defeat({ mobs = { "BEAST" } }) } },
+    })
+
+    local p = T.player()
+    T.trade(p, "Soil", { { 4096, 1 } }) T.run()
+    T.ok(T.entity("Beast"):isSpawned(), "spawned")
+
+    for _, e in ipairs(S.log) do
+        T.ok(not (e.kind == "print" and e.text:find("Event table missing", 1, true)), "no missing-event print")
+    end
+end))
+
 return T

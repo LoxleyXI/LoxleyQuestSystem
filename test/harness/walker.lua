@@ -411,6 +411,31 @@ local function stepActions(quest, step)
     return talks
 end
 
+-- Answer the menus an action opened (a talk, or a trade that offers a choice).
+-- A script may name the options to pick, in order, by label prefix
+local function answerMenus(quest, player, action)
+    local perStep = W.script and W.script.steps and W.script.steps[player:getCharVar(quest.info.var) + 1]
+    local choose  = perStep and perStep.choose or {}
+    local menus   = 0
+
+    while player.openMenu and menus < 8 do
+        local index  = nil
+        local wanted = choose[menus + 1]
+
+        if wanted ~= nil then
+            for i, opt in ipairs(player.openMenu.options) do
+                if tostring(opt[1]):sub(1, #wanted) == wanted then
+                    index = i
+                end
+            end
+        end
+
+        answerMenu(player, action.obj, index)
+        S.clock.run()
+        menus = menus + 1
+    end
+end
+
 local function perform(quest, player, action, opts)
     local info, zoneName = entityInfo(quest, action.name)
 
@@ -456,6 +481,7 @@ local function perform(quest, player, action, opts)
         S.protect("onTrade " .. action.name, live.def.onTrade, player, live, trade)
         S.clock.run()
         player.currentTrade = nil
+        answerMenus(quest, player, action)
         return
     end
 
@@ -469,28 +495,7 @@ local function perform(quest, player, action, opts)
     end
 
     S.clock.run()
-
-    -- A script may name the options to pick, in order, by label prefix
-    local perStep = W.script and W.script.steps and W.script.steps[player:getCharVar(quest.info.var) + 1]
-    local choose  = perStep and perStep.choose or {}
-    local menus   = 0
-
-    while player.openMenu and menus < 8 do
-        local index  = nil
-        local wanted = choose[menus + 1]
-
-        if wanted ~= nil then
-            for i, opt in ipairs(player.openMenu.options) do
-                if tostring(opt[1]):sub(1, #wanted) == wanted then
-                    index = i
-                end
-            end
-        end
-
-        answerMenu(player, action.obj, index)
-        S.clock.run()
-        menus = menus + 1
-    end
+    answerMenus(quest, player, action)
 end
 
 -- Walk a quest to the end. Returns a result table.
