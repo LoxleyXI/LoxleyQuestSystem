@@ -96,36 +96,39 @@ P.scriptedEvent = function(player, entities, events)
     return 6000 + #events * 1000
 end
 
--- 2.x row names still work for LQS.event calls made from other code (quests are
--- validated and must use the new names); each prints a notice once
-local legacyRows = { fmt = "say", emotion = "narrate", animation = "pose" }
-local legacyNoted = {}
+-- 2.x row names: not run, and named once so the caller can update them
+local renamedRows = { fmt = "say", emotion = "narrate" }
+local renamedNoted = {}
 
-local function upgradeRow(row)
-    for old, new in pairs(legacyRows) do
-        if row[old] ~= nil and row[new] == nil and (old ~= "animation" or row.duration ~= nil) then
-            if not legacyNoted[old] then
-                legacyNoted[old] = true
-                print(fmt("[LQS] event row '{}' is now '{}'", old, new))
+local function renamedRow(row)
+    for old, new in pairs(renamedRows) do
+        if row[old] ~= nil then
+            if not renamedNoted[old] then
+                renamedNoted[old] = true
+                print(fmt("[LQS] event row '{}' is now '{}'; skipped", old, new))
             end
 
-            local copy = {}
-
-            for k, v in pairs(row) do
-                copy[k] = v
-            end
-
-            copy[new] = row[old]
-            copy[old] = nil
-            row       = copy
+            return true
         end
     end
 
-    return row
+    -- `animation` is still a row (the NPC's); with a duration it was the player's pose
+    if row.animation ~= nil and row.duration ~= nil then
+        if not renamedNoted.animation then
+            renamedNoted.animation = true
+            print("[LQS] event row 'animation' with 'duration' is now 'pose'; skipped")
+        end
+
+        return true
+    end
+
+    return false
 end
 
 P.processTable = function(player, npc, prefix, row, delay)
-    row = upgradeRow(row)
+    if renamedRow(row) then
+        return
+    end
 
     -- Face
     -- Turn entity to face target

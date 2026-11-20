@@ -494,19 +494,19 @@ test("validate: a second quest can't reuse a var", wrap(function()
 end), { allowErrors = true })
 
 
-test("event: 2.x row names still work in direct LQS.event calls", wrap(function()
+test("event: 2.x row names are skipped and named", wrap(function()
     local p = T.player()
     p:setCharVar("[UNIT]COUNT", 7)
     LQS.event(p, nil, { { fmt = "Count {}", var = "[UNIT]COUNT" }, { emotion = "waves." } })
     T.run()
 
-    local said, narrated = false, false
+    local said, named = false, false
     for _, e in ipairs(S.log) do
-        if e.kind == "text" and e.text == "Count 7" then said = true end
-        if e.kind == "text" and e.text == "waves." then narrated = true end
+        if e.kind == "text" and (e.text == "Count 7" or e.text == "waves.") then said = true end
+        if e.kind == "print" and e.text:find("event row 'fmt' is now 'say'", 1, true) then named = true end
     end
-    T.ok(said, "fmt row said its line")
-    T.ok(narrated, "emotion row narrated")
+    T.ok(not said, "old rows don't run")
+    T.ok(named, "the replacement is named")
 end))
 
 
