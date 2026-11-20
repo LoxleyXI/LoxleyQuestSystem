@@ -16,8 +16,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      # LuaJIT with its per-process hash seeds off, so transcripts are the same every run
       - name: LuaJIT
-        run: sudo apt-get install -y luajit
+        run: |
+          git clone --depth 1 --branch v2.1 https://github.com/LuaJIT/LuaJIT.git luajit-src
+          make -C luajit-src -j4 XCFLAGS="-DLUAJIT_SECURITY_PRNG=0 -DLUAJIT_SECURITY_STRHASH=0 -DLUAJIT_SECURITY_STRID=0 -DLUAJIT_SECURITY_MCODE=0"
+          sudo make -C luajit-src install
+          sudo ln -sf $(ls /usr/local/bin/luajit-2.1* | head -1) /usr/local/bin/luajit
+          echo "LQS_LUAJIT=luajit" >> "$GITHUB_ENV"
 
       # Only the LandSandBoat files the harness reads: enums, a few globals, the binding lists
       - name: LandSandBoat (sparse)

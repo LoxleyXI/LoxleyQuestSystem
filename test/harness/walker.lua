@@ -151,7 +151,9 @@ local function meetChecks(player, checkFn)
     -- LQS.dialog takes a raw check table; steps and menus take an LQS.checks function.
     -- A quest from another system compiles its tables its own way (W.compileCheck).
     if type(checkFn) == "table" then
-        checkFn = (W.compileCheck or LQS.checks)(checkFn)
+        local tbl = checkFn
+        checkFn = (W.compileCheck or LQS.checks)(tbl)
+        tags[checkFn] = tags[checkFn] or { kind = "checks", obj = tbl }
     end
 
     local tag = tags[checkFn]
@@ -442,10 +444,24 @@ local function perform(quest, player, action, opts)
 
     S.clock.run()
 
-    local menus = 0
+    -- A script may name the options to pick, in order, by label prefix
+    local perStep = W.script and W.script.steps and W.script.steps[player:getCharVar(quest.info.var) + 1]
+    local choose  = perStep and perStep.choose or {}
+    local menus   = 0
 
-    while player.openMenu and menus < 5 do
-        answerMenu(player, action.obj)
+    while player.openMenu and menus < 8 do
+        local index  = nil
+        local wanted = choose[menus + 1]
+
+        if wanted ~= nil then
+            for i, opt in ipairs(player.openMenu.options) do
+                if tostring(opt[1]):sub(1, #wanted) == wanted then
+                    index = i
+                end
+            end
+        end
+
+        answerMenu(player, action.obj, index)
         S.clock.run()
         menus = menus + 1
     end
@@ -466,7 +482,8 @@ function W.walk(quest, player)
         local step  = steps[value + 1]
         result.reached = value
 
-        if step == nil then
+        -- Past the script's finish, the rest of the quest belongs to other systems
+        if step == nil or (W.script and W.script.finish and value >= W.script.finish) then
             result.complete = true
             break
         end
@@ -474,6 +491,14 @@ function W.walk(quest, player)
         -- A quest script's setup for this step (for eval checks and the like)
         if W.script and W.script.setup then
             S.protect("script setup", W.script.setup, player, value + 1, S)
+        end
+
+        -- A script's own action for this step (a switch outside the quest's entities, say)
+        local perStepScript = W.script and W.script.steps and W.script.steps[value + 1]
+
+        if perStepScript and perStepScript.before then
+            S.protect("script before", perStepScript.before, player, S)
+            S.clock.run()
         end
 
         local ok, why = meetChecks(player, step.check)
@@ -567,7 +592,28 @@ function W.walk(quest, player)
             end
         end
 
+        -- A script's stand-in for what moves this step on elsewhere (another system)
+        if not advanced and perStepScript and perStepScript.after then
+            S.protect("script after", perStepScript.after, player, S)
+            S.clock.run()
+            advanced = player:getCharVar(var) ~= value
+        end
+
         if not advanced then
+            -- A step made only of hints (step = false talk) is after-completion chatter
+            local idle = true
+
+            for _, action in ipairs(stepActions(quest, step)) do
+                if not (action.kind == "talk" and action.step == false) then
+                    idle = false
+                end
+            end
+
+            if idle and value > 0 then
+                result.complete      = true
+                result.finalStepIdle = true
+            end
+
             stuckAt = value + 1
             break
         end

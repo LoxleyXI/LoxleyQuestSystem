@@ -61,7 +61,12 @@ local totals = { PASS = 0, WARN = 0, FAIL = 0, SKIP = 0 }
 -- Run each test with address randomisation off where we can: LuaJIT orders pairs()
 -- over table- and function-keyed tables by address, so a quest that iterates one
 -- would otherwise vary between runs (and between before/after transcripts).
-local launcher = "luajit "
+-- LuaJIT 2.1 also seeds its string hashing randomly per process, so the same
+-- applies to string-keyed tables. For stable transcripts, point LQS_LUAJIT at a
+-- LuaJIT built with -DLUAJIT_SECURITY_PRNG=0 -DLUAJIT_SECURITY_STRHASH=0
+-- -DLUAJIT_SECURITY_STRID=0 (CI builds one).
+local luajit   = os.getenv("LQS_LUAJIT") or "luajit"
+local launcher = luajit .. " "
 
 do
     local p = io.popen("setarch $(uname -m) -R true 2>/dev/null && echo ok")
@@ -69,7 +74,7 @@ do
     p:close()
 
     if ok:match("ok") then
-        launcher = "setarch $(uname -m) -R luajit "
+        launcher = "setarch $(uname -m) -R " .. luajit .. " "
     end
 end
 

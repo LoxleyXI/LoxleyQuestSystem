@@ -54,7 +54,7 @@ local passed, failed = 0, 0
 for _, test in ipairs(T.list) do
     if not filter or test.name:find(filter, 1, true) then
         local function q(str) return "'" .. str:gsub("'", "'\\''") .. "'" end
-        local p = io.popen("luajit " .. q(here .. "run.lua") .. " " .. q("@" .. test.name) .. " 2>&1")
+        local p = io.popen((os.getenv("LQS_LUAJIT") or "luajit") .. " " .. q(here .. "run.lua") .. " " .. q("@" .. test.name) .. " 2>&1")
         local output = p:read("*a")
         p:close()
         io.write(output)

@@ -406,6 +406,10 @@ function Entity:setCharVar(name, value, expiry)
     end
 end
 
+-- getVar / setVar: older names LSB still binds
+function Entity:getVar(name)               return self:getCharVar(name) end
+function Entity:setVar(name, value, exp)   return self:setCharVar(name, value, exp) end
+
 function Entity:incrementCharVar(name, amount)
     self:setCharVar(name, self:getCharVar(name) + (amount or 1), self.varExpiry[name])
 end
