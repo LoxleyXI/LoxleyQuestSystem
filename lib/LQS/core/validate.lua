@@ -57,6 +57,24 @@ local BUILDER_KEYS =
     }),
 }
 
+-- Event rows: one command plus its options (delay may ride on any row)
+local EVENT_KEYS = set({
+    "delay", "emote", "narrate", "face", "say", "message", "special", "music", "pos", "teleport",
+    "spawn", "despawn", "glimpse", "animate", "pose", "action", "packet", "addEffect",
+    "removeEffect", "charvar", "costume", "scripted_event", "menu", "object",
+    -- options
+    "entity", "target", "mode", "duration", "name", "var", "after", "playerOnly", "teleportDelay",
+    "region", "value", "expiry", "skipDelayInternally",
+})
+
+local EVENT_RENAMED =
+{
+    emotion   = "narrate",
+    animation = "pose",
+    fmt       = "say (with var)",
+    noturn    = "nothing (it never did anything)",
+}
+
 local RENAMED =
 {
     quest      = "accept or complete (say which message)",
@@ -169,13 +187,28 @@ function P.validateQuest(tbl)
         end
     end
 
-    local function markEvent(event)
+    local function markEvent(event, path)
         if type(event) ~= "table" then
             return
         end
 
-        for _, row in ipairs(event) do
+        for i, row in ipairs(event) do
             if type(row) == "table" then
+                for key in pairs(row) do
+                    if EVENT_RENAMED[key] then
+                        err(string.format("%s[%d].%s", path, i, key), "renamed to " .. EVENT_RENAMED[key])
+                    elseif not EVENT_KEYS[key] then
+                        err(string.format("%s[%d].%s", path, i, key), "unknown event command or option")
+                    end
+                end
+
+                -- Named entities must be the quest's (or the player)
+                local named = row.entity
+
+                if type(named) == "string" and named ~= "player" and names[named] == nil and names[(named:gsub("_", " "))] == nil then
+                    err(string.format("%s[%d].entity", path, i), string.format("'%s' is not one of the quest's entities", named))
+                end
+
                 markNames(row.entity)
                 markNames(row.spawn)
                 markNames(row.despawn)
@@ -184,16 +217,22 @@ function P.validateQuest(tbl)
         end
     end
 
-    markUsed = function(obj)
+    markUsed = function(obj, path)
         markNames(obj.as)
         markNames(obj.spawn)
 
         for _, key in ipairs({ "event", "accepted", "declined", "fail", "before" }) do
-            markEvent(obj[key])
+            markEvent(obj[key], path .. "." .. key)
         end
 
-        for _, case in ipairs(obj.list or {}) do
-            markUsed(case)
+        for i, case in ipairs(obj.list or {}) do
+            markUsed(case, path .. ".list[" .. i .. "]")
+        end
+
+        for i, opt in ipairs(obj.options or {}) do
+            if type(opt) == "table" then
+                markEvent(opt.event or (type(opt[2]) == "table" and opt[2] or nil), path .. ".options[" .. i .. "]")
+            end
         end
     end
 
@@ -226,7 +265,7 @@ function P.validateQuest(tbl)
                     end
 
                     checkTable(where .. ".check", h.obj.check)
-                    markUsed(h.obj)
+                    markUsed(h.obj, where)
                 end
 
                 if type(entry) == "table" then

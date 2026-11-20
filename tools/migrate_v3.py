@@ -17,6 +17,10 @@ progress carries over):
     any builder name = ""  ->  object = true
     LQS.defeat  func = function(player, prev)  ->  after = function(ctx)
 
+  Event commands
+    emotion -> narrate, fmt -> say, { animation = N, ..., duration } -> pose,
+    { noturn = true } rows removed
+
   Hand-written handlers take ctx:
     onTrigger = function(player, npc)          -> function(ctx) local player, npc = ctx.player, ctx.npc
     onTrade   = function(player, npc, trade)   -> ... ctx.trade
@@ -355,8 +359,53 @@ def apply_edits(src, edits):
     return src
 
 
+# Event commands renamed in 3.0 (only as the first key of a row: `{ emotion = ...`)
+EVENT_RENAMES = [
+    (r"\{(\s*)emotion(\s*)=", r"{\1narrate\2=", "event: emotion -> narrate"),
+    (r"\{(\s*)fmt(\s*)=", r"{\1say\2=", "event: fmt -> say"),
+]
+
+
+def migrate_events(src, notes):
+    mask = code_mask(src)
+    for pattern, repl, note in EVENT_RENAMES:
+        out, last = [], 0
+        for m in re.finditer(pattern, src):
+            if not mask[m.start()]:
+                continue
+            out.append(src[last:m.start()])
+            out.append(m.expand(repl))
+            last = m.end()
+            notes.append(note)
+        out.append(src[last:])
+        src = "".join(out)
+        mask = code_mask(src)
+
+    # { animation = N, target = "player", duration = ms }: a pose (not an entity's animation field)
+    out, last = [], 0
+    for m in re.finditer(r"\{(\s*)animation(\s*)=([^{}]*\bduration\b[^{}]*)\}", src):
+        if not mask[m.start()]:
+            continue
+        out.append(src[last:m.start()])
+        out.append("{" + m.group(1) + "pose     " + m.group(2) + "=" + m.group(3) + "}")
+        last = m.end()
+        notes.append("event: animation -> pose")
+    out.append(src[last:])
+    src = "".join(out)
+
+    # { noturn = true }, rows: did nothing
+    src2 = re.sub(r"[ \t]*\{\s*noturn\s*=\s*true\s*\},[ \t]*\n", "", src)
+    # and as an extra key on another row: { object = true, noturn = true }
+    src2 = re.sub(r",\s*noturn\s*=\s*true(\s*\})", r"\1", src2)
+    src2 = re.sub(r"(\{\s*)noturn\s*=\s*true\s*,\s*", r"\1", src2)
+    if src2 != src:
+        notes.append("event: noturn rows removed")
+    return src2
+
+
 def migrate(src):
     notes = []
+    src = migrate_events(src, notes)
     src = migrate_builders(src, notes)
     src = migrate_handlers(src, notes)
     return src, notes

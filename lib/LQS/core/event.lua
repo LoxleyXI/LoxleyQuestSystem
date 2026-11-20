@@ -97,13 +97,9 @@ P.scriptedEvent = function(player, entities, events)
 end
 
 P.processTable = function(player, npc, prefix, row, delay)
-    if row.fmt ~= nil then
-        local result = player:getCharVar(row.var)
-        player:fmt(row.fmt, result)
-
     -- Face
     -- Turn entity to face target
-    elseif row.face ~= nil then
+    if row.face ~= nil then
         if row.entity == nil then
             if npc then
                 npc:ceFace(player)
@@ -195,8 +191,13 @@ P.processTable = function(player, npc, prefix, row, delay)
 
         player:fmt(result)
 
-    elseif row.emotion ~= nil then
-        player:printToPlayer(row.emotion, 8, row.name)
+    -- Narrate: the third-person emote line ("Name looks around.")
+    elseif row.narrate ~= nil then
+        player:printToPlayer(row.narrate, 8, row.name)
+
+    -- Menu: open a menu (title, options) once the event reaches this row
+    elseif row.menu ~= nil then
+        player:customMenu(row.menu)
 
     elseif row.special ~= nil then
         player:messageSpecial(row.special)
@@ -283,13 +284,13 @@ P.processTable = function(player, npc, prefix, row, delay)
             npc:ceEmote(player, row.emote, xi.emoteMode.MOTION)
         end
 
-    -- Animation
-    -- Set an animation on the target
-    elseif row.animation ~= nil then
+    -- Pose
+    -- Hold the player in an animation for a while (crouch, sit)
+    elseif row.pose ~= nil then
         if row.target and row.target == "player" then
             local anim = player:getAnimation()
 
-            player:setAnimation(row.animation)
+            player:setAnimation(row.pose)
 
             player:timer(row.duration, function(player)
                 player:setAnimation(anim)
@@ -372,9 +373,6 @@ LQS.eventDelay = function(tbl)
 
         elseif row.duration ~= nil then
             nextDelay = row.duration
-
-        elseif row.move ~= nil then
-            nextDelay = 200 * #row.move
 
         elseif row.scripted_event then
             nextDelay = 5000 + 1000 * #row.scripted_event.events
