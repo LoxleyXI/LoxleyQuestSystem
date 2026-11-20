@@ -48,7 +48,10 @@ LQS.dialog = function(obj)
 
             local event = P.eventOf(ctx, obj.event)
 
-            if not P.eventSpawn(obj, player, npc, event) then
+            -- No event (a dialog that only spawns): nothing to say
+            if event == nil then
+                event = {}
+            elseif not P.eventSpawn(obj, player, npc, event) then
                 -- An object (sign, marker) speaks without a name
                 local speaker = npc
 

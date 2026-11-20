@@ -192,6 +192,21 @@ LQS.addEffectFromSpec = function(mob, target, damage, spec, params)
     return xi.mob.onAddEffect(mob, target, damage, spec[1], params)
 end
 
+-- A copy of a with b's keys laid over it (eg. shared encounter options plus this step's)
+LQS.merge = function(a, b)
+    local result = {}
+
+    for k, v in pairs(a or {}) do
+        result[k] = v
+    end
+
+    for k, v in pairs(b or {}) do
+        result[k] = v
+    end
+
+    return result
+end
+
 LQS.randomNoRepeat = function(size, exclude)
     local range = {}
 

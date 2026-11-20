@@ -383,8 +383,8 @@ end
 
 -- Returns the total delay for event
 LQS.eventDelay = function(tbl)
-    if not tbl or type(tbl) ~= "table" or #tbl == 0 then
-        print("[LQS] Event table missing or empty.")
+    if type(tbl) ~= "table" then
+        print("[LQS] Event table missing.")
         return 0
     end
 

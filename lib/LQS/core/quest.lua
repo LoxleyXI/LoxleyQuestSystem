@@ -158,7 +158,25 @@ LQS.add = function(source, tbl)
     -- Normalise the step entries; refuse a quest with faults (a running
     -- version, on reload, keeps working)
     -----------------------------------
-    local questLabel       = tostring(tbl.info and tbl.info.name or "?")
+    local questLabel = tostring(tbl.info and tbl.info.name or "?")
+
+    -- Entities as one list, each with its zone: group them by zone
+    if type(tbl.entities) == "table" and tbl.entities[1] ~= nil then
+        local byZone = {}
+
+        for _, entity in ipairs(tbl.entities) do
+            if entity.zone == nil then
+                print(fmt("[LQS] {}: entity '{}' has no zone", questLabel, tostring(entity.name)))
+                return false
+            end
+
+            byZone[entity.zone] = byZone[entity.zone] or {}
+            table.insert(byZone[entity.zone], entity)
+        end
+
+        tbl.entities = byZone
+    end
+
     local handlers, errors = P.normalizeSteps(tbl)
 
     if #errors > 0 then
