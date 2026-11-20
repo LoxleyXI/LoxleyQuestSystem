@@ -673,12 +673,11 @@ test("LQS.spawn: a handler of your own starts an encounter", wrap(function()
 end))
 
 
-test("validate: two entities may not share a key", wrap(function()
+test("validate: two entities in one zone may not share a key", wrap(function()
     T.ok(refused({
         entities =
         {
-            [zoneName]          = { T.npc("Sharara", { key = "SHARARA" }) },
-            ["Tahrongi_Canyon"] = { T.npc("Sharara", { key = "SHARARA" }) },
+            [zoneName] = { T.npc("Sharara", { key = "SHARARA" }), T.npc("Sharara", { key = "SHARARA" }) },
         },
         steps = { { SHARARA = LQS.dialog({ event = { "Hello." } }) } },
     }), "a shared key should refuse the quest")

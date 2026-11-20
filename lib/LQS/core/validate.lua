@@ -129,13 +129,15 @@ function P.validateQuest(tbl)
         for i, e in ipairs(list) do
             local path = string.format("entities[%q][%d]", zoneName, i)
 
-            -- A key names one entity: steps reach it by key
+            -- A key names one entity per zone (the same NPC may stand in several zones)
             if e.key ~= nil then
-                if keys[e.key] ~= nil then
-                    err(path .. ".key", string.format("'%s' is also the key of %s", e.key, keys[e.key]))
+                local zoneKey = zoneName .. "/" .. tostring(e.key)
+
+                if keys[zoneKey] ~= nil then
+                    err(path .. ".key", string.format("'%s' is also the key of %s", e.key, keys[zoneKey]))
                 end
 
-                keys[e.key] = path
+                keys[zoneKey] = path
             end
 
             if type(e.name) ~= "string" then

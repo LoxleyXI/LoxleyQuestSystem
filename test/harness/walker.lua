@@ -81,16 +81,33 @@ end
 -----------------------------------
 -- Quest table helpers
 -----------------------------------
--- Entities are found by `key` when an adapter sets one (two entities may share a
--- name in different zones), else by name
+-- Entities are found by key, else by name. The same NPC may stand in several
+-- zones under one key: take one that starts visible, then the first zone by
+-- name, so the choice never depends on table order
 local function entityInfo(quest, name)
-    for zoneName, list in pairs(quest.entities or {}) do
-        for _, e in ipairs(list) do
+    local zones = {}
+
+    for zoneName in pairs(quest.entities or {}) do
+        table.insert(zones, zoneName)
+    end
+
+    table.sort(zones)
+
+    local fallback, fallbackZone
+
+    for _, zoneName in ipairs(zones) do
+        for _, e in ipairs(quest.entities[zoneName]) do
             if (e.key or e.name) == name then
-                return e, zoneName
+                if not e.hidden then
+                    return e, zoneName
+                end
+
+                fallback, fallbackZone = fallback or e, fallbackZone or zoneName
             end
         end
     end
+
+    return fallback, fallbackZone
 end
 
 local function findLive(zoneName, name)
