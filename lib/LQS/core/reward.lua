@@ -58,29 +58,64 @@ end
 -----------------------------------
 -- Reward utils
 -----------------------------------
+-- Give a reward spec, all or nothing. A spec is:
+--   a number (one item), a list (npcUtil items: { { id, qty }, id, ... }),
+--   or a table: item, qty, augment, gil, exp, keyitem (one or a list),
+--   currency = { name, amount }, points = { var, amount, message },
+--   slots = { bag, n }, title, byJob = { [xi.job.X] = spec, default = spec }
+-- Returns true only if everything was given.
 function P.giveReward(player, reward, questName)
-    if
-        type(reward) == "number" or
-        type(reward[1]) == "table"
-    then
+    if reward == nil then
+        return true
+    end
+
+    -- Items only
+    if type(reward) == "number" or (type(reward) == "table" and reward[1] ~= nil) then
         return npcUtil.giveItem(player, reward)
     end
 
-    if reward.item ~= nil then
-        if reward.augment ~= nil then
-            local ID = zones[player:getZoneID()]
+    if type(reward) ~= "table" then
+        print(fmt("[LQS] Reward must be a number or a table, got {}", type(reward)))
+        return false
+    end
 
-            if
-                player:getFreeSlotsCount() > 0 and
-                player:canObtainItem(reward.item) and
-                player:addItem(reward.item, 1, unpack(reward.augment))
-            then
-                player:messageSpecial(ID.text.ITEM_OBTAINED, reward.item)
-            else
+    -- A reward per job: the whole spec is chosen by the player's main job
+    if reward.byJob ~= nil then
+        local chosen = reward.byJob[player:getMainJob()] or reward.byJob.default
+
+        if chosen == nil then
+            return false
+        end
+
+        return P.giveReward(player, chosen, questName)
+    end
+
+    -- item may be a whole npcUtil list ({ { id, qty } }); npcUtil checks space for it
+    if type(reward.item) == "table" then
+        if not npcUtil.giveItem(player, reward.item) then
+            return false
+        end
+
+    -- One item: check it can be given before handing over anything else
+    elseif reward.item ~= nil then
+        local ID = zones[player:getZoneID()]
+
+        if
+            player:getFreeSlotsCount() < 1 or
+            not player:canObtainItem(reward.item)
+        then
+            player:messageSpecial(ID.text.ITEM_CANNOT_BE_OBTAINED, reward.item)
+            return false
+        end
+
+        if reward.augment ~= nil then
+            if not player:addItem(reward.item, reward.qty or 1, unpack(reward.augment)) then
                 player:messageSpecial(ID.text.ITEM_CANNOT_BE_OBTAINED, reward.item)
                 return false
             end
-        elseif not npcUtil.giveItem(player, reward.item) then
+
+            player:messageSpecial(ID.text.ITEM_OBTAINED, reward.item)
+        elseif not npcUtil.giveItem(player, { { reward.item, reward.qty or 1 } }) then
             return false
         end
     end
@@ -90,28 +125,37 @@ function P.giveReward(player, reward, questName)
     end
 
     if reward.currency ~= nil then
-        npcUtil.giveCurrency(player, reward.currency[1], reward.currency[2])
+        LQS.hooks.giveCurrency(player, reward.currency[1], reward.currency[2])
     end
 
     if reward.gil ~= nil then
-        npcUtil.giveCurrency(player, "gil", reward.gil)
+        LQS.hooks.giveCurrency(player, "gil", reward.gil)
     end
 
     if reward.keyitem ~= nil then
-        if type(reward.keyitem) == "table" then
-            for _, keyItem in pairs(reward.keyitem) do
-                npcUtil.giveKeyItem(player, keyItem)
-            end
-        else
-            npcUtil.giveKeyItem(player, reward.keyitem)
-        end
+        npcUtil.giveKeyItem(player, reward.keyitem)
     end
 
     if reward.slots ~= nil then
         LQS.rewardSlots(player, reward.slots)
     end
 
-    -- Execute optional quest registry override
+    if reward.title ~= nil then
+        player:addTitle(reward.title)
+    end
+
+    if reward.points ~= nil then
+        local points = reward.points
+        local amount = type(points.amount) == "table" and math.random(points.amount[1], points.amount[2]) or points.amount
+
+        player:incrementCharVar(points.var, amount)
+
+        if points.message ~= nil then
+            player:sys(points.message, player:getName(), amount)
+        end
+    end
+
+    -- Optional quest registry override
     if
         questName ~= nil and
         LQS.registry[questName] ~= nil and
