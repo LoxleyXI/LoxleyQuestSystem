@@ -543,4 +543,72 @@ test("keys: two entities with one name in different zones get their own steps", 
     T.eq(p:getCharVar("[LQS]UNIT"), 2, "the Mines Reisle finishes it")
 end))
 
+
+test("dialog keys: event = \"START\" plays the entity's dialog.START", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Giver", { dialog = { DEFAULT = { "Hm?" }, START = { "Begin here." } } }) } },
+        steps = { { Giver = LQS.dialog({ event = "START" }) } },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Giver")
+    T.run()
+
+    local said = false
+    for _, e in ipairs(S.log) do
+        if e.kind == "text" and e.text:find("Begin here.", 1, true) then said = true end
+    end
+    T.ok(said, "the START lines played")
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "quest var")
+end))
+
+test("menu: an option with step = false only talks", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Asker") } },
+        steps = { { Asker = LQS.menu({
+            title   = "Help?",
+            options = { { "Tell me more.", event = { "It's dangerous." }, step = false }, { "Yes.", event = { "Thanks!" } } },
+        }) } },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Asker") T.run() T.choose(p, 1) T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 0, "talking option")
+    T.trigger(p, "Asker") T.run() T.choose(p, 2) T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "accepting option")
+end))
+
+test("dialog spawn and defeat by key, with resetStep to a number", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Spot"), T.mob("Wild Ram", { key = "RAM_1" }) } },
+        steps =
+        {
+            { Spot = LQS.dialog({ event = { "Something rustles." } }) },
+            {
+                Spot  = LQS.dialog({ event = { "Here it comes!" }, spawn = { "RAM_1" }, step = false }),
+                RAM_1 = LQS.defeat({ mobs = { "RAM_1" }, resetStep = 1 }),
+            },
+        },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Spot") T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "first talk")
+    T.trigger(p, "Spot") T.run()
+    T.ok(T.entity("Wild Ram"):isSpawned(), "ram spawned by key")
+    S.killMob(T.entity("Wild Ram"), p) T.run()
+    T.eq(p:getCharVar("[LQS]UNIT"), 1, "resetStep = 1 sets the var to 1")
+end))
+
+test("reward after(player) runs once the reward is given", wrap(function()
+    T.quest({
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps = { { Giver = LQS.dialog({ event = { "Here." }, reward = { gil = 10, after = function(player) player:setCharVar("[UNIT]AFTER", 1) end } }) } },
+    })
+
+    local p = T.player()
+    T.trigger(p, "Giver") T.run()
+    T.eq(p:getCharVar("[UNIT]AFTER"), 1, "after ran")
+end))
+
 return T

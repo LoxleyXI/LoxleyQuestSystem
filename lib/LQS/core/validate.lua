@@ -39,16 +39,16 @@ local COMMON = { "check", "event", "reward", "step", "accept", "complete", "miss
 
 local BUILDER_KEYS =
 {
-    dialog = set({ "fail", unpack(COMMON) }),
+    dialog = set({ "fail", "spawn", "hideSpawner", "levelCap", "raiseAllowed", "partySize", "scaleVar", "nextPos", unpack(COMMON) }),
     trade  = set({
         "required", "accepted", "declined", "increment", "keep", "spawn", "tally", "list",
         "exchange", "sellrate", "exclude", "replacements", "conditional", "points", "flag",
         "nextPos", "levelCap", "raiseAllowed", "partySize", "scaleVar", "setVar", "setVarAll",
-        unpack(COMMON),
+        "hideSpawner", unpack(COMMON),
     }),
     menu   = set({
         "title", "before", "declined", "default", "options", "spawn", "flag", "nextPos",
-        "levelCap", "raiseAllowed", "partySize", "scaleVar", "setVar", "setVarAll", "onChoice",
+        "levelCap", "raiseAllowed", "partySize", "scaleVar", "setVar", "setVarAll", "onChoice", "hideSpawner",
         unpack(COMMON),
     }),
     defeat = set({

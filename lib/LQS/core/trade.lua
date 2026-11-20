@@ -89,7 +89,7 @@ local function startEncounter(ctx, case)
         end
     end
 
-    local started = P.delaySpawn(player, npc, 0, mobs, ctx.entities, true, {
+    local started = P.delaySpawn(player, npc, 0, mobs, ctx.entities, case.hideSpawner ~= false, {
         setPos       = npc:getPos(),
         nextPos      = case.nextPos,
         levelCap     = case.levelCap,
@@ -115,6 +115,8 @@ end
 
 -- Show an event as this NPC, or as the `as` NPC
 local function show(ctx, case, event)
+    event = P.eventOf(ctx, event)
+
     if not P.eventSpawn(case, ctx.player, ctx.npc, event) then
         -- An object (sign, marker) speaks without a name
         local speaker = ctx.npc
@@ -135,7 +137,7 @@ local function takeCase(ctx, obj, case)
         player:incrementCharVar(case.tally, ctx.trade:getItemCount())
     end
 
-    local delay = LQS.eventDelay(case.accepted)
+    local delay = LQS.eventDelay(P.eventOf(ctx, case.accepted))
 
     show(ctx, case, case.accepted)
 
@@ -178,7 +180,7 @@ local function exchange(ctx, obj)
 
     show(ctx, obj, obj.accepted)
 
-    ctx:lockedAfter(LQS.eventDelay(obj.accepted), function()
+    ctx:lockedAfter(LQS.eventDelay(P.eventOf(ctx, obj.accepted)), function()
         local givenGil = 0
         local results  = {}
 

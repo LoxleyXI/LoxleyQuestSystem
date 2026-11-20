@@ -14,6 +14,7 @@
 --     accept   = "Quest Name",     -- or complete = / mission = : the message
 --     music    = id,               -- with the message
 --     as       = "Other NPC",      -- swap this NPC for another during the event
+--     spawn    = { "Mob" },        -- start an encounter after the event (levelCap, partySize...)
 --     object   = true,             -- no NPC name (signs, markers)
 --     after    = function(ctx) end,
 -- })
@@ -37,7 +38,7 @@ LQS.dialog = function(obj)
 
             if check ~= nil and not check(player) then
                 if obj.fail ~= nil then
-                    LQS.event(player, npc, obj.fail, ctx)
+                    LQS.event(player, npc, P.eventOf(ctx, obj.fail), ctx)
                 else
                     P.showDefault(ctx)
                 end
@@ -45,7 +46,7 @@ LQS.dialog = function(obj)
                 return
             end
 
-            local event = obj.event
+            local event = P.eventOf(ctx, obj.event)
 
             if not P.eventSpawn(obj, player, npc, event) then
                 -- An object (sign, marker) speaks without a name
@@ -56,6 +57,19 @@ LQS.dialog = function(obj)
                 end
 
                 LQS.event(player, speaker, event, ctx)
+            end
+
+            -- spawn = { mobs }: an encounter once the event has played
+            if type(obj.spawn) == "table" then
+                player:timer(LQS.eventDelay(event), function()
+                    P.delaySpawn(player, npc, 0, obj.spawn, ctx.entities, obj.hideSpawner ~= false, {
+                        levelCap     = obj.levelCap,
+                        raiseAllowed = obj.raiseAllowed,
+                        partySize    = obj.partySize,
+                        scaleVar     = obj.scaleVar,
+                        nextPos      = obj.nextPos,
+                    })
+                end)
             end
 
             -- A hint or reminder: nothing more

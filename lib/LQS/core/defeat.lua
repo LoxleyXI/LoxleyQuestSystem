@@ -51,7 +51,7 @@ LQS.defeat = function(params)
             -- Every listed mob must be down
             if params.mobs ~= nil then
                 for _, mobName in pairs(params.mobs) do
-                    local ent = P.getEntity(member, mobName)
+                    local ent = P.getEntity(member, P.nameOf(ctx.entities, mobName))
 
                     if ent ~= nil and ent:isAlive() then
                         return
@@ -62,7 +62,8 @@ LQS.defeat = function(params)
             if params.step == nil or params.step == true then
                 if params.flag == nil or member:getLocalVar(params.flag) == 1 then
                     if params.resetStep ~= nil then
-                        ctx:setVar(0)
+                        -- true: back to the start; a number: to that value
+                        ctx:setVar(type(params.resetStep) == "number" and params.resetStep or 0)
                     else
                         ctx:advance()
                     end
@@ -108,7 +109,7 @@ LQS.defeat = function(params)
             end
 
             if params.event ~= nil then
-                LQS.event(member, nil, params.event, ctx)
+                LQS.event(member, nil, P.eventOf(ctx, params.event), ctx)
             end
 
             if params.after ~= nil then
@@ -125,7 +126,7 @@ LQS.defeat = function(params)
             if params.spawner ~= nil and mob:getLocalVar("[LQS]SPAWNER_BACK") == 0 then
                 mob:setLocalVar("[LQS]SPAWNER_BACK", 1)
 
-                local spawner = P.getEntity(member, params.spawner)
+                local spawner = P.getEntity(member, P.nameOf(ctx.entities, params.spawner))
 
                 if spawner ~= nil then
                     spawner:setStatus(xi.status.NORMAL)

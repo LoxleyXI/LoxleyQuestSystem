@@ -20,11 +20,35 @@ function P.getEntity(player, entityName)
     return result[1]
 end
 
+-- An entity named by its key (or its name) in a quest's entities (by zone, or a list)
+function P.findEntityDef(entities, keyOrName)
+    for zoneOrIndex, value in pairs(entities or {}) do
+        if type(value) == "table" and value.name == nil then
+            -- a zone's list
+            for _, entity in ipairs(value) do
+                if entity.key == keyOrName then
+                    return entity
+                end
+            end
+        elseif type(value) == "table" and value.key == keyOrName then
+            return value
+        end
+    end
+
+    return nil
+end
+
+-- The live name for a key; a name is returned as it is
+function P.nameOf(entities, keyOrName)
+    local def = P.findEntityDef(entities, keyOrName)
+    return def and def.name or keyOrName
+end
+
 function P.getEntityInfo(entities, entityName)
     local entityInfo = nil
 
     for _, entity in pairs(entities) do
-        if entity.name == entityName then
+        if entity.key == entityName or entity.name == entityName then
             entityInfo = entity
         end
     end
@@ -165,7 +189,7 @@ function P.spawnMob(player, npc, entities, mobName, params)
     local zone     = player:getZone()
     local zoneName = player:getZoneName()
     local mobInfo  = P.getEntityInfo(entities[zoneName], mobName)
-    local result   = zone:queryEntitiesByName("DE_" .. mobName)
+    local result   = zone:queryEntitiesByName("DE_" .. (mobInfo and mobInfo.name or mobName))
 
     for _, mob in pairs(result) do
         if mob ~= nil and not mob:isSpawned() then
@@ -264,14 +288,25 @@ function P.mobsSpawned(player, mobName)
 end
 
 function P.delaySpawn(player, npc, delay, mobs, entities, hideSpawner, params)
+    -- Mobs may be named by key
+    if type(mobs) == "table" then
+        local named = {}
+
+        for i, mob in ipairs(mobs) do
+            named[i] = mob
+        end
+
+        mobs = named
+    end
+
     if type(mobs) == "table" then
         for _, mobName in pairs(mobs) do
-            if P.mobsSpawned(player, mobName) then
+            if P.mobsSpawned(player, P.nameOf(entities, mobName)) then
                 return false
             end
         end
     else
-        if P.mobsSpawned(player, mobs) then
+        if P.mobsSpawned(player, P.nameOf(entities, mobs)) then
             return false
         end
     end

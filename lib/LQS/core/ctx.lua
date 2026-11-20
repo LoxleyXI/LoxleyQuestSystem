@@ -26,6 +26,20 @@ LQS.ctx = function(fields)
     return P.newCtx(fields or {})
 end
 
+-- An event, or the key of one in this entity's dialog table ("START")
+function P.eventOf(ctx, event)
+    if
+        type(event) == "string" and
+        ctx ~= nil and ctx.entity ~= nil and
+        type(ctx.entity.dialog) == "table" and
+        ctx.entity.dialog[event] ~= nil
+    then
+        return ctx.entity.dialog[event]
+    end
+
+    return event
+end
+
 -- The quest var
 function Ctx:var()
     return self.player:getCharVar(self.quest.var)

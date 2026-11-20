@@ -420,6 +420,11 @@ end
 -- ctx is optional: handlers pass theirs; custom code calling LQS.event directly
 -- gets a minimal one for any function in the event
 LQS.event = function(player, npc, tbl, ctx)
+    -- A key into the entity's dialog table
+    if type(tbl) == "string" then
+        tbl = P.eventOf(ctx, tbl)
+    end
+
     if
         type(tbl) ~= "table" and
         type(tbl) ~= "function"

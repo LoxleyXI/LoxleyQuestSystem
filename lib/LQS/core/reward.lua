@@ -155,6 +155,11 @@ function P.giveReward(player, reward, questName)
         end
     end
 
+    -- after = function(player): once everything is given
+    if reward.after ~= nil then
+        reward.after(player)
+    end
+
     -- Optional quest registry override
     if
         questName ~= nil and

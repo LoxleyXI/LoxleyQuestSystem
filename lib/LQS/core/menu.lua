@@ -35,6 +35,7 @@ local function optionOf(opt)
         event  = opt.event or ((type(opt[2]) == "table" or type(opt[2]) == "function") and opt[2] or nil),
         reward = opt.reward or opt[3],
         spawn  = opt.spawn or opt[2] == true,
+        step   = opt.step,
     }
 end
 
@@ -54,7 +55,7 @@ local function spawnGroup(ctx, obj)
         end
     end
 
-    if P.delaySpawn(player, npc, 0, mobs, ctx.entities, true, {
+    if P.delaySpawn(player, npc, 0, mobs, ctx.entities, obj.hideSpawner ~= false, {
         setPos       = npc:getPos(),
         nextPos      = obj.nextPos,
         levelCap     = obj.levelCap,
@@ -80,8 +81,19 @@ local function choose(ctx, obj, opt)
     local player, npc = ctx.player, ctx.npc
 
     if opt.spawn then
+        -- The option's event first, then the encounter
+        local delay = 0
+
+        if opt.event ~= nil then
+            local event = P.eventOf(ctx, opt.event)
+            LQS.event(player, npc, event, ctx)
+            delay = LQS.eventDelay(event)
+        end
+
         if obj.spawn ~= nil then
-            spawnGroup(ctx, obj)
+            player:timer(delay, function()
+                spawnGroup(ctx, obj)
+            end)
         end
 
         return
@@ -92,9 +104,16 @@ local function choose(ctx, obj, opt)
         return
     end
 
-    LQS.event(player, npc, opt.event, ctx)
+    local event = P.eventOf(ctx, opt.event)
 
-    ctx:lockedAfter(LQS.eventDelay(opt.event), function()
+    LQS.event(player, npc, event, ctx)
+
+    -- step = false on the option: it only talks
+    if opt.step == false then
+        return
+    end
+
+    ctx:lockedAfter(LQS.eventDelay(event), function()
         if opt.reward ~= nil and not ctx:reward(opt.reward) then
             return
         end
@@ -125,7 +144,7 @@ LQS.menu = function(obj)
 
             if check ~= nil and not check(player) then
                 if obj.declined ~= nil then
-                    LQS.event(player, npc, obj.declined, ctx)
+                    LQS.event(player, npc, P.eventOf(ctx, obj.declined), ctx)
                 elseif obj.default == nil then
                     P.showDefault(ctx)
                 elseif
@@ -163,7 +182,11 @@ LQS.menu = function(obj)
             local delay = 0
 
             if obj.before ~= nil then
-                local before = type(obj.before) == "table" and obj.before or { obj.before }
+                local before = P.eventOf(ctx, obj.before)
+
+                if type(before) ~= "table" then
+                    before = { before }
+                end
                 LQS.event(player, npc, before, ctx)
                 delay = LQS.eventDelay(before)
             end
