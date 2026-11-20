@@ -262,7 +262,10 @@ local function exchange(ctx, obj)
             end
         end
 
-        P.performTrade(ctx, obj, items, true)
+        -- tally counts the items traded, as in a plain trade
+        if P.performTrade(ctx, obj, items, true) and obj.tally ~= nil then
+            player:incrementCharVar(obj.tally, totalQtyTraded)
+        end
 
         if givenGil > 0 then
             LQS.hooks.giveCurrency(player, "gil", givenGil)
