@@ -246,7 +246,7 @@ end)
 One format everywhere (`reward =`, `ctx:reward`, `info.reward`):
 * a number: one item
 * a list: `{ { itemId, qty }, itemId }`
-* a table: `item`, `qty`, `augment`, `gil`, `exp`, `keyitem` (one or a list), `currency = { name, amount }`, `points = { var, amount, message }`, `slots = { bag, n }`, `title`, `byJob = { [xi.job.WAR] = spec, default = spec }`, `feature` (shown by `!quest`)
+* a table: `item`, `qty`, `augment`, `gil`, `exp`, `keyitem` (one or a list), `currency = { name, amount }`, `points = { var, amount, message }`, `slots = { bag, n }`, `title`, `byJob = { [xi.job.WAR] = spec, default = spec }`, `after = function(ctx)` (once it's all given), `feature` (shown by `!quest`)
 
 All or nothing: if the item can't be given, nothing else is.
 

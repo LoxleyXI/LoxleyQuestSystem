@@ -142,7 +142,7 @@ end
 -- Takes the lock unless this ctx already holds it (as builders do).
 function Ctx:reward(spec)
     local function give()
-        return P.giveReward(self.player, spec, self.quest and string.lower(self.quest.name or ""))
+        return P.giveReward(self.player, spec, self.quest and string.lower(self.quest.name or ""), self)
     end
 
     if self.holding then

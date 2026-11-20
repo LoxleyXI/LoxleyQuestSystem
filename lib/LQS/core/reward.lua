@@ -64,7 +64,7 @@ end
 --   currency = { name, amount }, points = { var, amount, message },
 --   slots = { bag, n }, title, byJob = { [xi.job.X] = spec, default = spec }
 -- Returns true only if everything was given.
-function P.giveReward(player, reward, questName)
+function P.giveReward(player, reward, questName, ctx)
     if reward == nil then
         return true
     end
@@ -87,7 +87,7 @@ function P.giveReward(player, reward, questName)
             return false
         end
 
-        return P.giveReward(player, chosen, questName)
+        return P.giveReward(player, chosen, questName, ctx)
     end
 
     -- item may be a whole npcUtil list ({ { id, qty } }); npcUtil checks space for it
@@ -155,9 +155,9 @@ function P.giveReward(player, reward, questName)
         end
     end
 
-    -- after = function(player): once everything is given
+    -- after = function(ctx): once everything is given (like a builder's after)
     if reward.after ~= nil then
-        reward.after(player)
+        reward.after(ctx or P.newCtx({ player = player }))
     end
 
     -- Optional quest registry override

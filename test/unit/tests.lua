@@ -600,10 +600,10 @@ test("dialog spawn and defeat by key, with resetStep to a number", wrap(function
     T.eq(p:getCharVar("[LQS]UNIT"), 1, "resetStep = 1 sets the var to 1")
 end))
 
-test("reward after(player) runs once the reward is given", wrap(function()
+test("reward after(ctx) runs once the reward is given", wrap(function()
     T.quest({
         entities = { [zoneName] = { T.npc("Giver") } },
-        steps = { { Giver = LQS.dialog({ event = { "Here." }, reward = { gil = 10, after = function(player) player:setCharVar("[UNIT]AFTER", 1) end } }) } },
+        steps = { { Giver = LQS.dialog({ event = { "Here." }, reward = { gil = 10, after = function(ctx) ctx.player:setCharVar("[UNIT]AFTER", 1) end } }) } },
     })
 
     local p = T.player()
