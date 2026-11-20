@@ -19,7 +19,28 @@ local P = LQS._
 --       },
 --   })
 -----------------------------------
+-- LQS.npc handlers take ctx, like quest handlers (ctx.quest is nil)
+local function npcHandlers(entity)
+    local onTrigger, onTrade
+
+    if entity.onTrigger ~= nil then
+        onTrigger = function(player, npc)
+            entity.onTrigger(P.newCtx({ player = player, npc = npc, entity = entity }))
+        end
+    end
+
+    if entity.onTrade ~= nil then
+        onTrade = function(player, npc, trade)
+            entity.onTrade(P.newCtx({ player = player, npc = npc, trade = trade, entity = entity }))
+        end
+    end
+
+    return onTrigger, onTrade
+end
+
 function P.registerNpc(source, zoneName, entity)
+    local onTrigger, onTrade = npcHandlers(entity)
+
     local flags = entity.flags or 0
     if entity.size and entity.size >= LQS.LARGE then
         flags = bit.bor(flags, 0x04)
@@ -37,8 +58,8 @@ function P.registerNpc(source, zoneName, entity)
         z           = entity.pos[3],
         rotation    = entity.pos[4] or 0,
         widescan    = 1,
-        onTrigger   = entity.onTrigger,
-        onTrade     = entity.onTrade,
+        onTrigger   = onTrigger,
+        onTrade     = onTrade,
     }
 
     if entity.look ~= nil then
@@ -58,12 +79,12 @@ function P.registerNpc(source, zoneName, entity)
             local lookupName = "DE_" .. entity.name
             local cacheEntry = xi.zones[zoneName].npcs[lookupName]
 
-            if entity.onTrigger then
-                cacheEntry.onTrigger = entity.onTrigger
+            if onTrigger then
+                cacheEntry.onTrigger = onTrigger
             end
 
-            if entity.onTrade then
-                cacheEntry.onTrade = entity.onTrade
+            if onTrade then
+                cacheEntry.onTrade = onTrade
             end
 
             local underscoreZoneName = string.gsub(zoneName, "-", "_")
@@ -132,6 +153,25 @@ function P.getStepHint(tbl, step, entityZone, entityType)
 end
 
 LQS.add = function(source, tbl)
+    -----------------------------------
+    -- Normalise the step entries; refuse a quest with faults (a running
+    -- version, on reload, keeps working)
+    -----------------------------------
+    local questLabel       = tostring(tbl.info and tbl.info.name or "?")
+    local handlers, errors = P.normalizeSteps(tbl)
+
+    if #errors > 0 then
+        for _, problem in ipairs(errors) do
+            print(fmt("[LQS] {}: {}", questLabel, problem))
+        end
+
+        return false
+    end
+
+    tbl.handlers  = handlers
+    tbl.quest     = { name = tbl.info.name, var = tbl.info.var, info = tbl.info }
+    tbl.infoCheck = P.compileCheck(tbl.info.check)
+
     -----------------------------------
     -- Create quest registry for !quest command
     -----------------------------------
@@ -214,32 +254,6 @@ LQS.add = function(source, tbl)
             if #features > 0 then
                 entry.feature = features
             end
-        end
-    end
-
-    -----------------------------------
-    -- Auto-create chest NPCs for mobs with chest = { loot = {...} }
-    -----------------------------------
-    for zoneName, zoneEntities in pairs(tbl.entities) do
-        local chests = {}
-        for _, entity in pairs(zoneEntities) do
-            if entity.type == xi.objType.MOB and entity.chest ~= nil then
-                local chestName = string.gsub(entity.name, " ", "_") .. "_Chest"
-                table.insert(chests, {
-                    name       = chestName,
-                    packetName = entity.chest.name or "Treasure Chest",
-                    type       = xi.objType.NPC,
-                    look       = entity.chest.look or 966,
-                    pos        = { 1, 1, 1, 0 },
-                    hidden     = true,
-                    hideName   = true,
-                    _isChest   = true,
-                    _chestLoot = entity.chest.loot,
-                })
-            end
-        end
-        for _, chest in ipairs(chests) do
-            table.insert(zoneEntities, chest)
         end
     end
 

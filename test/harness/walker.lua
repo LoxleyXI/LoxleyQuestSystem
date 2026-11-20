@@ -21,7 +21,17 @@ local function tagged(kind, builder)
         local handler = builder(obj, ...)
 
         if handler ~= nil then
-            tags[handler] = { kind = kind, obj = obj }
+            local tag = { kind = kind, obj = obj }
+            tags[handler] = tag
+
+            -- 3.0 builders return a handler table: tag its functions too
+            if type(handler) == "table" then
+                for _, event in ipairs({ "onTrigger", "onTrade", "onMobDeath" }) do
+                    if type(handler[event]) == "function" then
+                        tags[handler[event]] = tag
+                    end
+                end
+            end
         end
 
         return handler
@@ -286,7 +296,7 @@ local function classify(quest, name, handler)
 
         if handler.onTrigger then
             local tag = tags[handler.onTrigger]
-            table.insert(actions, { kind = tag and tag.kind == "menu" and "menu" or "talk", name = name, obj = tag and tag.obj })
+            table.insert(actions, { kind = tag and tag.kind == "menu" and "menu" or "talk", name = name, obj = tag and tag.obj, step = tag and tag.obj and tag.obj.step })
         end
     else
         local tag = tags[handler]

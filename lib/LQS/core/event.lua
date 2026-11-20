@@ -49,12 +49,13 @@ P.eventEntity = function(player, entityName)
     return result[1]
 end
 
+-- `as`: swap this NPC for another quest entity while the event plays
 function P.eventSpawn(obj, player, npc, event)
-    if obj.spawn == nil then
+    if obj.as == nil then
         return false
     end
 
-    local spawned = P.eventEntity(player, obj.spawn)
+    local spawned = P.eventEntity(player, obj.as)
 
     npc:ceDespawn(player)
     spawned:ceSpawn(player)
@@ -388,7 +389,9 @@ LQS.eventDelay = function(tbl)
     return total
 end
 
-LQS.event = function(player, npc, tbl)
+-- ctx is optional: handlers pass theirs; custom code calling LQS.event directly
+-- gets a minimal one for any function in the event
+LQS.event = function(player, npc, tbl, ctx)
     if
         type(tbl) ~= "table" and
         type(tbl) ~= "function"
@@ -401,9 +404,10 @@ LQS.event = function(player, npc, tbl)
         return
     end
 
-    -- Evaluate function instead of executing event (given the npc too, for defaults that act as it)
+    -- A function in place of an event (a default, say): called with the player,
+    -- the npc and ctx
     if type(tbl) == "function" then
-        tbl(player, npc)
+        tbl(player, npc, ctx or P.newCtx({ player = player, npc = npc }))
         return
     end
 
@@ -451,7 +455,11 @@ LQS.event = function(player, npc, tbl)
 
         if type(row) == "function" then
             -- Delayed function
-            player:timer(delay, tbl[i])
+            -- A function row: called with the player and ctx
+            local row = tbl[i]
+            player:timer(delay, function(playerArg)
+                row(playerArg, ctx or P.newCtx({ player = playerArg, npc = npc }))
+            end)
 
         elseif type(row) == "string" then
             P.processString(player, prefix, row, delay)

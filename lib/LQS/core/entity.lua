@@ -14,23 +14,18 @@ local P = LQS._
 -- Entity load and reload
 -----------------------------------
 function P.entitySetup(dynamicEntity, tbl, entity)
-    local questName = string.lower(tbl.info.name)
-
-    -- Chest NPCs get raw onTrigger (bypass step system)
-    if entity._isChest then
-        local chestName = entity.name
-        local chestLoot = entity._chestLoot
-
+    -- An entity with its own onTrigger (a util's companion, say) bypasses the steps
+    if entity.type ~= xi.objType.MOB and entity.onTrigger ~= nil then
         dynamicEntity.onTrigger = function(player, npc)
-            cexi.loot_chest.open(player, npc, chestLoot, chestName)
+            entity.onTrigger(P.newCtx({ player = player, npc = npc, entity = entity, quest = tbl.quest, entities = tbl.entities }))
         end
 
     elseif
         entity.type == xi.objType.NPC or
         entity.marker ~= nil
     then
-        dynamicEntity.onTrigger = P.getSteps(tbl.info.var, entity, tbl.steps, tbl.entities, questName)
-        dynamicEntity.onTrade   = P.getTradeSteps(tbl.info.var, entity, tbl.steps, tbl.entities)
+        dynamicEntity.onTrigger = P.triggerDispatcher(tbl, entity)
+        dynamicEntity.onTrade   = P.tradeDispatcher(tbl, entity)
 
     elseif entity.type == xi.objType.MOB then
         dynamicEntity.groupId     = entity.groupId
@@ -63,7 +58,7 @@ function P.entitySetup(dynamicEntity, tbl, entity)
             end
         end
 
-        local stepDeath = P.getMobSteps("onMobDeath", tbl.info.var, entity, tbl.steps, tbl.entities)
+        local stepDeath = P.deathDispatcher(tbl, entity)
         dynamicEntity.onMobDeath = function(mob, player, optParams)
             runUtils("onMobDeath", mob, player)
             stepDeath(mob, player, optParams)

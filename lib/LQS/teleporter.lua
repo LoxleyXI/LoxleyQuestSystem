@@ -182,7 +182,9 @@ LQS.teleporter = function(config)
     end
 
     -- Return the onTrigger handler
-    return function(player, npc)
+    return function(ctx)
+        local player, npc = ctx.player, ctx.npc
+
         npc:lookAt(player:getPos())
 
         if config.greeting then

@@ -256,7 +256,6 @@ function P.mobsSpawned(player, mobName)
             mob:isSpawned()
         then
             player:sys("An encounter is already in progress.")
-            player:setLocalVar("[LQS]REWARD", 0)
             return true
         end
     end

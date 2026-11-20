@@ -31,122 +31,108 @@ function P.awardGive(player, var, reward)
     end
 end
 
+-- LQS.defeat({
+--     mobs     = { "Mob", ... },   -- all must be dead
+--     spawner  = "NPC",            -- shown again once the fight is over
+--     event    = { ... },          -- shown to each credited member
+--     step     = false, resetStep = true, flag = "[local var]",
+--     cooldown = "[VAR]", helper = reward, var = "[VAR]", exp = n, raise = level,
+--     points   = n or { min, max }, pointsVar, message, multiplier = { var, range },
+--     setLocal = { var, val },
+--     after    = function(ctx) end,
+-- })
+-- Runs once per credited member (LSB calls onMobDeath for each), at that
+-- member's own step; the spawner comes back once.
 LQS.defeat = function(params)
-    return function(mob, player, entity, var, step, entities, check)
-        if mob:getLocalVar("KILLED") == 1 then
-            return
-        end
+    return P.handler("defeat", {
+        onMobDeath = function(ctx)
+            local mob, member = ctx.mob, ctx.player
 
-        mob:setLocalVar("KILLED", 1)
+            -- Every listed mob must be down
+            if params.mobs ~= nil then
+                for _, mobName in pairs(params.mobs) do
+                    local ent = P.getEntity(member, mobName)
 
-        if params.mobs ~= nil then
-            for _, mobName in pairs(params.mobs) do
-                local ent = P.getEntity(player, mobName)
-
-                if ent:isAlive() then
-                    return false
+                    if ent ~= nil and ent:isAlive() then
+                        return
+                    end
                 end
             end
-        end
 
-        local nextStep = step
+            if params.step == nil or params.step == true then
+                if params.flag == nil or member:getLocalVar(params.flag) == 1 then
+                    if params.resetStep ~= nil then
+                        ctx:setVar(0)
+                    else
+                        ctx:advance()
+                    end
 
-        if params.resetStep ~= nil then
-            nextStep = 0
-        end
-
-        -- Increment player quest step
-        P.allPlayers(player, function(member)
-            -- Apply update for players on the current quest step
-            if
-                (params.step == nil or params.step == true) and
-                (member:getCharVar(var) == (step - 1) and
-                (check == nil or check(member)))
-            then
-                -- Apply var changes only for flagged players
-                if
-                    params ~= nil and
-                    params.flag ~= nil
-                then
-                    if member:getLocalVar(params.flag) == 1 then
-                        member:setCharVar(var, nextStep)
+                    if params.flag ~= nil then
                         member:setLocalVar(params.flag, 0)
                     end
+                end
+            end
+
+            if params.cooldown ~= nil then
+                member:setCharVar(params.cooldown, 1, JstMidnight())
+            end
+
+            if params.setLocal ~= nil then
+                member:setLocalVar(params.setLocal.var, params.setLocal.val)
+            end
+
+            if params.helper ~= nil then
+                P.awardGive(member, params.var or (ctx.quest.var .. "_HELPER"), params.helper)
+            end
+
+            if params.exp ~= nil then
+                member:addExp(params.exp)
+            end
+
+            if params.message ~= nil then
+                if params.points ~= nil then
+                    local total = params.points
+
+                    if params.multiplier ~= nil then
+                        local multiply = mob:getLocalVar(params.multiplier.var)
+                        total = utils.clamp(params.points * multiply, params.multiplier.range[1], params.multiplier.range[2]) + math.random(1, params.points)
+                    elseif type(params.points) == "table" then
+                        total = math.random(params.points[1], params.points[2])
+                    end
+
+                    member:incrementCharVar(params.pointsVar, total)
+                    member:sys(params.message, member:getName(), total)
                 else
-                    member:setCharVar(var, nextStep)
+                    member:sys(params.message)
                 end
             end
 
-            -- Apply optional cooldown or clear local var for all players
-            if params ~= nil then
-                if params.cooldown ~= nil then
-                    member:setCharVar(params.cooldown, 1, JstMidnight())
-                end
-
-                if params.setLocal ~= nil then
-                    member:setLocalVar(params.setLocal.var, params.setLocal.val)
-                end
-
-                if params.helper ~= nil then
-                    local cooldownVar = var .. "_HELPER"
-
-                    if params.var ~= nil then
-                        cooldownVar = params.var
-                    end
-
-                    P.awardGive(member, cooldownVar, params.helper)
-                end
-
-                if params.exp ~= nil then
-                    member:addExp(params.exp)
-                end
-
-                if params.message ~= nil then
-                    if params.points ~= nil then
-                        local total = params.points
-
-                        if params.multiplier ~= nil then
-                            local multiply = mob:getLocalVar(params.multiplier.var)
-                            total = utils.clamp(params.points * multiply, params.multiplier.range[1], params.multiplier.range[2]) + math.random(1, params.points)
-                        else
-                            if type(params.points) == "table" then
-                                total = math.random(params.points[1], params.points[2])
-                            end
-                        end
-
-                        member:incrementCharVar(params.pointsVar, total)
-                        member:sys(params.message, member:getName(), total)
-                    else
-                        member:sys(params.message)
-                    end
-                end
-
-                if params.cooldown ~= nil then
-                    member:setCharVar(params.cooldown, 1, JstMidnight())
-                end
-
-                if params.func ~= nil then
-                    params.func(member, step - 1)
-                end
-
-                if params.raise ~= nil then
-                    member:sendRaise(params.raise)
-                end
+            if params.event ~= nil then
+                LQS.event(member, nil, params.event, ctx)
             end
 
-            -- Remove level cap
+            if params.after ~= nil then
+                params.after(ctx)
+            end
+
+            if params.raise ~= nil then
+                member:sendRaise(params.raise)
+            end
+
             P.removeLevelCap(member)
-        end)
 
-        -- Respawn spawner
-        if params.spawner ~= nil then
-            local spawner = P.getEntity(player, params.spawner)
+            -- The spawner comes back once, not once per member
+            if params.spawner ~= nil and mob:getLocalVar("[LQS]SPAWNER_BACK") == 0 then
+                mob:setLocalVar("[LQS]SPAWNER_BACK", 1)
 
-            if spawner ~= nil then
-                spawner:setStatus(xi.status.NORMAL)
+                local spawner = P.getEntity(member, params.spawner)
+
+                if spawner ~= nil then
+                    spawner:setStatus(xi.status.NORMAL)
+                end
             end
-        end
-    end
+        end,
+    })
 end
 
 LQS.npcSpawner = function(tbl, npc, spawner, keepSpawner)
@@ -163,7 +149,6 @@ LQS.npcSpawner = function(tbl, npc, spawner, keepSpawner)
     if keepSpawner then
         before =
         {
-            { noturn  = true },
             { spawn   = npcs },
             { delay   = 500 },
             { entity  = npcs[1], face = "player" },

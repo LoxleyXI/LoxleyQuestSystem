@@ -128,8 +128,9 @@ LQS.purchaseItem = function(player, npc, item, obj)
 end
 
 LQS.shop = function(obj)
-    return function(player, npc, tbl, var, step)
-        local balance  = player:getCharVar(obj.var)
+    return P.handler("shop", { onTrigger = function(ctx)
+        local player, npc = ctx.player, ctx.npc
+        local balance     = player:getCharVar(obj.var)
         local purchase = function(player, npc, item)
             LQS.purchaseItem(player, npc, item, obj)
         end
@@ -151,7 +152,7 @@ LQS.shop = function(obj)
         end
 
         LQS.simpleShop(player, npc, list, purchase, fmt(obj.title, balance))
-    end
+    end })
 end
 
 return {}
