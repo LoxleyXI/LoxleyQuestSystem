@@ -17,18 +17,22 @@ LQS = LQS or {}
 --
 -- Usage:
 --   LQS.npc(m, {
---       name = "Dimensional_Guide",
---       area = "Port_Jeuno",
---       pos  = { 10, 0, -20, 128 },
---       look = 1415,
---       onTrigger = LQS.teleporter({
---           destinations = {
---               { name = "Sanctuary", pos = { -37, 0, -141, 69, 121 }, costs = { gil = 500 } },
---               { name = "Crag of Dem", teleport = xi.teleport.id.DEM, costs = { cp = 100 } },
+--       ["Port_Jeuno"] =
+--       {
+--           {
+--               name      = "Dimensional Guide",
+--               pos       = { 10, 0, -20, 128 },
+--               look      = 1415,
+--               onTrigger = LQS.teleporter({
+--                   destinations = {
+--                       { name = "Sanctuary", pos = { -37, 0, -141, 69, 121 }, costs = { gil = 500 } },
+--                       { name = "Crag of Dem", teleport = xi.teleport.id.DEM, costs = { cp = 100 } },
+--                   },
+--                   preTeleportEffects = { LQS.signetEffect() },
+--                   animation = { actionID = 6, animID = 600 },
+--               }),
 --           },
---           preTeleportEffects = { LQS.signetEffect() },
---           animation = { actionID = 6, animID = 600 },
---       }),
+--       },
 --   })
 -----------------------------------
 
@@ -211,17 +215,25 @@ end
 --
 -- Usage:
 --   LQS.npc(m, {
---       name = "Outpost_Warper",
---       area = "Lower_Jeuno",
---       pos  = { 24.155, -1.0, 45.905, 149 },
---       look = 1415,
---       onTrigger = LQS.outpostTeleporter({
---           preTeleportEffects = { LQS.signetEffect() },
---       }),
+--       ["Lower_Jeuno"] =
+--       {
+--           {
+--               name      = "Outpost Warper",
+--               pos       = { 24.155, -1.0, 45.905, 149 },
+--               look      = 1415,
+--               onTrigger = LQS.outpostTeleporter({
+--                   preTeleportEffects = { LQS.signetEffect() },
+--               }),
+--           },
+--       },
 --   })
 -----------------------------------
 LQS.outpostTeleporter = function(config)
     config = config or {}
+
+    -- LSB renamed two regions in 2026 (QUFIMISLAND, TAVNAZIANARCH); accept either name
+    local QUFIM     = xi.region.QUFIM_ISLAND or xi.region.QUFIMISLAND
+    local TAVNAZIA  = xi.region.TAVNAZIAN_ARCHIPELAGO or xi.region.TAVNAZIANARCH
 
     local outpostTable = {
         [xi.region.RONFAURE]         = { gil = 100, cp = 10,  level = 10, name = "Ronfaure" },
@@ -234,13 +246,13 @@ LQS.outpostTeleporter = function(config)
         [xi.region.ARAGONEU]         = { gil = 150, cp = 40,  level = 15, name = "Aragoneu" },
         [xi.region.FAUREGANDI]       = { gil = 350, cp = 70,  level = 35, name = "Fauregandi" },
         [xi.region.VALDEAUNIA]       = { gil = 400, cp = 50,  level = 40, name = "Valdeaunia" },
-        [xi.region.QUFIMISLAND]      = { gil = 150, cp = 60,  level = 15, name = "Qufim" },
+        [QUFIM]                      = { gil = 150, cp = 60,  level = 15, name = "Qufim" },
         [xi.region.LITELOR]          = { gil = 250, cp = 40,  level = 25, name = "Li'Telor" },
         [xi.region.KUZOTZ]           = { gil = 300, cp = 70,  level = 30, name = "Kuzotz" },
         [xi.region.VOLLBOW]          = { gil = 500, cp = 70,  level = 50, name = "Vollbow" },
         [xi.region.ELSHIMO_LOWLANDS] = { gil = 250, cp = 70,  level = 25, name = "Elshimo Lowlands" },
         [xi.region.ELSHIMO_UPLANDS]  = { gil = 350, cp = 70,  level = 35, name = "Elshimo Uplands" },
-        [xi.region.TAVNAZIANARCH]    = { gil = 300, cp = 70,  level = 30, name = "Tavnazia" },
+        [TAVNAZIA]                   = { gil = 300, cp = 70,  level = 30, name = "Tavnazia" },
     }
 
     if config.outpostOverrides then

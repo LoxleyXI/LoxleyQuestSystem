@@ -3,7 +3,7 @@
 -----------------------------------
 -- Copyright (c) 2025 LoxleyXI
 --
--- https://github.com/LoxleyXI/LQS
+-- https://github.com/LoxleyXI/LoxleyQuestSystem
 -----------------------------------
 -- This program is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ local m = Module:new("LQS_Loxley_Quest_System")
 -- Define globally for reloads and persistence between files
 LQS          = LQS or {}
 LQS.registry = LQS.registry or {}
-LQS.VERSION  = "2.3.0"
+LQS.VERSION  = "2.4.0"
 
 LQS.settings =
 {
@@ -396,7 +396,7 @@ local processTable = function(player, npc, prefix, row, delay)
     -- Sends an emote from the source NPC onto the target NPC or player
     elseif row.emote  ~= nil then
         if row.entity == "player" then
-            player:selfEmote(player, row.emote, xi.emoteMode.MOTION)
+            player:ceEmote(player, row.emote, xi.emoteMode.MOTION)
 
         elseif row.entity ~= nil then
             local entity = getEntity(player, row.entity)
@@ -476,7 +476,7 @@ end
 -- Returns the total delay for event
 LQS.eventDelay = function(tbl)
     if not tbl or type(tbl) ~= "table" or #tbl == 0 then
-        print(string.format("[LQS] Event table for %s missing or empty.", npcName))
+        print("[LQS] Event table missing or empty.")
         return 0
     end
 
@@ -1202,8 +1202,11 @@ local function giveReward(player, reward, questName)
         if reward.augment ~= nil then
             local ID = zones[player:getZoneID()]
 
-            if player:getFreeSlotsCount() > 0 then
+            if
+                player:getFreeSlotsCount() > 0 and
+                player:canObtainItem(reward.item) and
                 player:addItem(reward.item, 1, unpack(reward.augment))
+            then
                 player:messageSpecial(ID.text.ITEM_OBTAINED, reward.item)
             else
                 player:messageSpecial(ID.text.ITEM_CANNOT_BE_OBTAINED, reward.item)
@@ -1401,7 +1404,12 @@ LQS.checks = function(tbl)
         local pass = true
 
         for k, v in pairs(tbl) do
-            if not checkList[string.lower(k)](player, v) then
+            local check = checkList[k] or checkList[string.lower(k)]
+
+            if check == nil then
+                print(fmt("[LQS] Unknown check '{}' (it always fails)", k))
+                pass = false
+            elseif not check(player, v) then
                 pass = false
             end
         end
@@ -1556,7 +1564,7 @@ end
 local function performTrade(obj, player, var, count, increment, items, multiple)
     if
         (obj.reward == nil and items == nil) or
-        (type(obj.reward) == "table" and giveReward(player, obj.reward, obj)) or
+        (type(obj.reward) == "table" and giveReward(player, obj.reward, obj.quest and string.lower(obj.quest))) or
         npcUtil.giveItem(player, items or obj.reward, { multiple = multiple })
     then
         player:tradeComplete()
@@ -1589,6 +1597,7 @@ local function performTrade(obj, player, var, count, increment, items, multiple)
         player:setLocalVar("[LQS]REWARD", 0)
     else
         player:tradeRelease()
+        player:setLocalVar("[LQS]REWARD", 0)
     end
 end
 
@@ -1803,29 +1812,31 @@ LQS.trade = function(obj)
                             end
                         end
 
-                        for _, mobName in pairs(mobs) do
-                            if delaySpawn(player, npc, 0, mobs, tbl, true, {
-                                setPos       = npc:getPos(),
-                                nextPos      = obj.nextPos,
-                                levelCap     = obj.levelCap,
-                                raiseAllowed = obj.raiseAllowed,
-                                partySize    = obj.partySize,
-                                scaleVar     = obj.scaleVar,
-                            }) then
-                                performTrade(obj, player, var, count)
+                        -- delaySpawn spawns the whole group, so call it once
+                        if delaySpawn(player, npc, 0, mobs, tbl, true, {
+                            setPos       = npc:getPos(),
+                            nextPos      = obj.nextPos,
+                            levelCap     = obj.levelCap,
+                            raiseAllowed = obj.raiseAllowed,
+                            partySize    = obj.partySize,
+                            scaleVar     = obj.scaleVar,
+                        }) then
+                            performTrade(obj, player, var, count)
 
-                                if obj.setVar ~= nil then
-                                    for _, varInfo in pairs(obj.setVar) do
-                                        player:setCharVar(varInfo[1], varInfo[2])
-                                    end
+                            if obj.setVar ~= nil then
+                                for _, varInfo in pairs(obj.setVar) do
+                                    player:setCharVar(varInfo[1], varInfo[2])
                                 end
                             end
+                        else
+                            player:tradeRelease()
+                            player:setLocalVar("[LQS]REWARD", 0)
+                        end
 
-                            if obj.setVarAll ~= nil then
-                                allPlayers(player, function(member)
-                                    member:setCharVar(obj.setVarAll[1], obj.setVarAll[2])
-                                end)
-                            end
+                        if obj.setVarAll ~= nil then
+                            allPlayers(player, function(member)
+                                member:setCharVar(obj.setVarAll[1], obj.setVarAll[2])
+                            end)
                         end
                     end
                 end)
@@ -1903,27 +1914,26 @@ LQS.menu = function(obj)
                                     end
                                 end
 
-                                for _, mobName in pairs(mobs) do
-                                    if delaySpawn(player, npc, 0, mobs, entities, true, {
-                                        setPos       = npc:getPos(),
-                                        nextPos      = obj.nextPos,
-                                        levelCap     = obj.levelCap,
-                                        raiseAllowed = obj.raiseAllowed,
-                                        partySize    = obj.partySize,
-                                        scaleVar     = obj.scaleVar,
-                                    }) then
-                                        if obj.setVar ~= nil then
-                                            for _, varInfo in pairs(obj.setVar) do
-                                                player:setCharVar(varInfo[1], varInfo[2])
-                                            end
+                                -- delaySpawn spawns the whole group, so call it once
+                                if delaySpawn(player, npc, 0, mobs, entities, true, {
+                                    setPos       = npc:getPos(),
+                                    nextPos      = obj.nextPos,
+                                    levelCap     = obj.levelCap,
+                                    raiseAllowed = obj.raiseAllowed,
+                                    partySize    = obj.partySize,
+                                    scaleVar     = obj.scaleVar,
+                                }) then
+                                    if obj.setVar ~= nil then
+                                        for _, varInfo in pairs(obj.setVar) do
+                                            player:setCharVar(varInfo[1], varInfo[2])
                                         end
                                     end
+                                end
 
-                                    if obj.setVarAll ~= nil then
-                                        allPlayers(player, function(member)
-                                            member:setCharVar(obj.setVarAll[1], obj.setVarAll[2])
-                                        end)
-                                    end
+                                if obj.setVarAll ~= nil then
+                                    allPlayers(player, function(member)
+                                        member:setCharVar(obj.setVarAll[1], obj.setVarAll[2])
+                                    end)
                                 end
                             end
 
@@ -1933,7 +1943,7 @@ LQS.menu = function(obj)
                         local delay = LQS.eventDelay(obj.options[i][2])
                         LQS.event(player, npc, obj.options[i][2])
 
-                        if obj.options[3] ~= nil then
+                        if obj.options[i][3] ~= nil then
                             if player:getLocalVar("[LQS]REWARD") == 1 then
                                 return
                             end
@@ -1944,7 +1954,7 @@ LQS.menu = function(obj)
                         npc:timer(delay, function(playerArg)
                             -- Optionally give item after dialog
                             if obj.options[i][3] ~= nil then
-                                if npcUtil.giveItem(player, obj.options[3]) then
+                                if npcUtil.giveItem(player, obj.options[i][3]) then
 
                                     if
                                         obj.step == nil or
@@ -2312,7 +2322,7 @@ LQS.defeat = function(params)
 
         local nextStep = step
 
-        if resetStep ~= nil then
+        if params.resetStep ~= nil then
             nextStep = 0
         end
 
@@ -2322,7 +2332,7 @@ LQS.defeat = function(params)
             if
                 (params.step == nil or params.step == true) and
                 (member:getCharVar(var) == (step - 1) and
-                (check == nil or check(alliance[i])))
+                (check == nil or check(member)))
             then
                 -- Apply var changes only for flagged players
                 if
@@ -2367,7 +2377,7 @@ LQS.defeat = function(params)
                         local total = params.points
 
                         if params.multiplier ~= nil then
-                            local multiply mob:getLocalVar(params.multiplier.var)
+                            local multiply = mob:getLocalVar(params.multiplier.var)
                             total = utils.clamp(params.points * multiply, params.multiplier.range[1], params.multiplier.range[2]) + math.random(1, params.points)
                         else
                             if type(params.points) == "table" then
