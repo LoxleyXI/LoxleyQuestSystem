@@ -3,9 +3,9 @@ name: Tests
 on:
   push:
     branches: [main, v3]
-    paths: ['lib/**', 'commands/**', 'cpp/**', 'questpack/**', 'npcpack/**', 'test/**', '.github/workflows/test.yml']
+    paths: ['lib/**', 'commands/**', 'cpp/**', 'questpack/**', 'npcpack/**', 'test/**', 'README.md', '.github/workflows/test.yml']
   pull_request:
-    paths: ['lib/**', 'commands/**', 'cpp/**', 'questpack/**', 'npcpack/**', 'test/**', '.github/workflows/test.yml']
+    paths: ['lib/**', 'commands/**', 'cpp/**', 'questpack/**', 'npcpack/**', 'test/**', 'README.md', '.github/workflows/test.yml']
   workflow_dispatch:
 
 jobs:

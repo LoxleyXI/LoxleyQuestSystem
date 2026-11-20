@@ -37,9 +37,8 @@ If you found this module helpful, please consider kindly supporting my other wor
 * Aht Urhgan **(2)**: Insult to Gingery, Pecking Battles
 
 ## Simple Example
-The following is a minimal example to get started building quests in LQS.
+A minimal quest. (For a fuller one, see [Here Be Dragons](https://github.com/LoxleyXI/LoxleyQuestSystem/blob/main/questpack/other_areas/lqs_here_be_dragons.lua).)
 
-(For a more complete example, see: [Here be Dragons](https://github.com/LoxleyXI/LoxleyQuestSystem/blob/main/questpack/other_areas/lqs_here_be_dragons.lua))
 ```lua
 local m = Module:new("lqs_example")
 
@@ -47,7 +46,7 @@ local SimpleQuest = "Simple Quest"
 local Example     = "Example"
 
 LQS.add(m, {
-    info     =
+    info =
     {
         name   = SimpleQuest,
         author = "Loxley",
@@ -58,14 +57,11 @@ LQS.add(m, {
         ["Upper_Jeuno"] =
         {
             {
-                name = Example,
-                type = xi.objType.NPC,
-                look = LQS.look({
-                    race = xi.race.HUME_M,
-                    face = LQS.face.A1,
-                    body = 21,
-                }),
-                pos = { -3.276, -0.000, 25.295, 106 }, -- !pos -3.276 -0.000 25.295 244
+                name    = Example,
+                type    = xi.objType.NPC,
+                look    = LQS.look({ race = xi.race.HUME_M, face = LQS.face.A1, body = 21 }),
+                pos     = { -3.276, -0.000, 25.295, 106 }, -- !pos -3.276 -0.000 25.295 244
+                default = { "Lovely weather today." },
             },
         },
     },
@@ -73,15 +69,21 @@ LQS.add(m, {
     {
         {
             [Example] = LQS.dialog({
-                quest  = SimpleQuest,
-                reward = xi.item.CHUNK_OF_ROCK_SALT,
-                step   = false, -- Prevent quest advancing
+                accept = SimpleQuest,
                 event  =
                 {
-                    "Hello,",
-                    { emote = xi.emote.WAVE },
-                    " Welcome to the example quest.",
+                    "Could you bring me some rock salt?",
+                    { emote = xi.emote.THINK },
                 },
+            }),
+        },
+        {
+            [Example] = LQS.trade({
+                required = xi.item.CHUNK_OF_ROCK_SALT,
+                reward   = { gil = 500 },
+                complete = SimpleQuest,
+                accepted = { "Perfect, thank you!" },
+                declined = { "That's not rock salt." },
             }),
         },
     },
@@ -90,257 +92,240 @@ LQS.add(m, {
 return m
 ```
 
-## Utilities
-### LQS.event
-Event tables are core to LQS and allow endless possibilities for scripting custom events for each quest step. Thanks to the LQS namespace, `LQS.event` can actually be utilised in other modules, offering enhanced interactions for all custom content. All events are handled per player and due to being sent packets directly, no other players will see the NPCs or their movements.
+The quest var counts the steps a player has done: `steps[var + 1]` is the step they're on. Each step names the entities that do something on it; everyone else shows their `default`.
+
+## Steps and handlers
+A step entry is a builder (`LQS.dialog`, `LQS.trade`, `LQS.menu`, `LQS.defeat`, `LQS.shop`), a function of your own, or a table of them:
 
 ```lua
-LQS.event(player, npc {
-    "Hello there, messages are usually prefixed with the NPC's name, just like regular in-game dialog.", -- Eg. Name : Hello there...
-    " Rows that start with indentation will also skip the NPC's name.", -- Eg.  Rows that start...
-    { face         = "player", entity = "Name"                         }, -- Turn event trigger NPC to face player, specify entity name to turn a different NPC
-    { removeEffect = xi.effect.LEVEL_RESTRICTION                       }, -- Remove a status effect from the player
-    { charvar      = "[LQS]VAR_NAME", value = 10                       }, -- Set a character variable
-    { setcostume   = 123                                               }, -- Set costume for the player
-    { message      = "Test message"                                    }, -- Present a gold coloured system message
-    { emotion      = "claps very loudly.", name = "Name"               }, -- Present a purple coloured emote message from "name"
-    { special      = 123                                               }, -- Present a messageSpecial corresponding to the provided message ID
-    { music        = 123                                               }, -- Update the player's current music ID, useful for creating impactful cutscenes
-    { pos          = { 1, 1, 1, 0 }                                    }, -- Update the player's current position
-    { packet       = "open", entity = "Treasure Chest"                 }, -- Send a named entity packet to the specified NPC
-    { animate      = 251, mode = 4, entity = "Name", target = "player" }, -- Send an independent animation packet for the NPC (eg. Hearts animation), target optional
-    { emote        = xi.emote.TOSS, entity = "Name/player"             }, -- Send an emote from the specified NPC, entity name optional
-    { spawn        = { "One", "Two", "Three" }                         }, -- Spawn the specified entities for this player
-    { despawn      = { "One", "Two", "Three" }                         }, -- Despawn the specified entities for this player
-    { glimpse      = { 3000, { "One", "Two", "Three" } }               }, -- Briefly spawn then despawn the specified entities for this player after the given duration
-})
+[Khartes] = LQS.dialog({ ... }),                     -- talking
+[Altar]   = LQS.trade({ ... }),                      -- trading
+[Beast]   = LQS.defeat({ ... }),                     -- a mob dying
+[Khartes] = function(ctx) ... end,                   -- your own (on a mob: when it dies)
+[Altar]   = { onTrigger = LQS.dialog({ ... }), onTrade = LQS.trade({ ... }), check = { level = 30 } },
 ```
 
-### LQS.look
-The look utility provides an easy interface to create unique NPC looks without needing to manually convert each model ID into a little endian byte string (eg. `"0x01000F020010032008300A400850006000700000"`). Model IDs can be found as an MId in [LSB's `item_equipment.sql`](https://github.com/LandSandBoat/server/blob/base/sql/item_equipment.sql)
+A `check` on a step, or on a handler table, means the NPC shows its default until the player meets it.
+
+### ctx
+Every handler receives one `ctx`:
+
+| Field | What |
+|---|---|
+| `ctx.player` | the player (for a mob death: each credited party member in turn) |
+| `ctx.npc`, `ctx.mob`, `ctx.trade` | what was talked to, killed or traded |
+| `ctx.quest` | `{ name, var, info }` |
+| `ctx.step` | the step the player is on (var + 1) |
+| `ctx.entity` | this entity's definition |
+| `ctx.isKiller` | for a mob death |
+
+| Method | What |
+|---|---|
+| `ctx:advance(n)` | this step is done (or n steps on) |
+| `ctx:setVar(v)` | set the quest var outright |
+| `ctx:event(e)` | play an event as this NPC |
+| `ctx:reward(spec)` | give a reward, all or nothing; true if given |
+| `ctx:find(name)` | a quest entity in the player's zone |
+| `ctx:locked(fn)` | run fn under the quest's reward lock |
+| `ctx:busy()` | the player is mid-dialog |
 
 ```lua
-LQS.look({
-    race = xi.race.ELVAAN_F,
-    face = LQS.face.B2,
-    head = 0,
-    body = 6,
-    hand = 6,
-    legs = 6,
-    feet = 6,
-    main = 0,
-    offh = 0,
-})
+[Well] =
+{
+    onTrade = function(ctx)
+        if npcUtil.tradeHasOnly(ctx.trade, xi.item.WORN_PENDANT) then
+            ctx.player:tradeComplete()
+            ctx:advance()
+            ctx:event({ { object = true }, "The water stills." })
+        end
+    end,
+},
 ```
 
-## Step Functions
+The reward lock stops a player collecting a reward twice by talking or trading again before it lands. Builders take it for you; `ctx:reward` takes it in your own handlers.
+
+Mob deaths are handled once for each credited party member, each at their own step.
+
+### Quest messages
+Builders say which message to show: `accept = "Quest Name"` (Quest Accepted), `complete = "Quest Name"` (Quest Completed) or `mission = "Mission Name"`. Add `music = id` to play a track with it.
+
 ### LQS.dialog
-Dialog steps are the foundation of any quest, each dialog includes an event table and optional parameters, such as quest name to trigger the "Quest Accepted" message or reward to trigger the "Quest Completed" message and distribute rewards.
-* Event tables consist of strings and tables containing many different functions
-* Dialog is automatically assigned to the current NPC unless a spawn is specified
-* The assigned NPC will turn to the player during dialog and reset position following
-* Spawners will disappear during dialog and respawn after
-* Events are sent directly to the target player, the only one who sees NPCs move, emote or spawners altering state
 ```lua
-["Entity Name"] = LQS.dialog({
-    -- (Optional)
-    check  = { level = 5 },
-
-    -- (Optional) Setting this will give players the "Quest Accepted" message after the dialog completes
-    quest  = "Quest Name",
-
-     -- (Optional) Setting this will complete the quest after the dialog completes
-    reward = { item = xi.item.CHUNK_OF_ROCK_SALT, gil = 100, slots = { xi.inv.WARDROBE4, 1 }, feature = "Storage: Ephemeral Box" },
-
-    -- (Optional) Set the NPC's name here if the entity is a spawner
-    spawn  = "NPC Name",
-
-    -- (Optional) Include if this should not increment the quest step, ie. reminder dialog
-    step   = false,
-
-    -- (Required)
-    event  =
-    {
-        "Test message",
-        { emote = xi.emote.THINK },
-    },
+[Khartes] = LQS.dialog({
+    event    = { "Have you been to Gustav Tunnel?", { emote = xi.emote.THINK } },
+    check    = { level = 30 },       -- else `fail`, or the NPC's default
+    fail     = { "Come back when you're stronger." },
+    reward   = spec,                 -- given once the event finishes
+    step     = false,                -- a hint: doesn't advance or reward
+    accept   = "Here Be Dragons",    -- or complete = / mission =
+    as       = "Leidl",              -- swap this NPC for another quest entity during the event
+    object   = true,                 -- speaks without a name (signs, markers)
+    after    = function(ctx) end,    -- once it succeeds
 }),
 ```
 
 ### LQS.trade
-Trade steps advance the quest or provide rewards in exchange for requested items. By setting `step = false`, repeatable quests can be created and the `tally` parameter can be used to keep track of the total trades, eg. for dialog.
 ```lua
-["Entity Name"] =
-{
-    -- When sharing a step with a trade handler, onTrigger events must be assigned to the table
-    onTrigger = LQS.dialog({
-        step  = false,
-        event =
-        {
-            "Remember the thing I asked you to get for me?"
-        },
-    }),
-
-    -- Trade handlers must be assigned to the onTrade parameter of a table in the entity's current step
-    onTrade = LQS.trade({
-        -- (Optional) Gate this step with optional requirements
-        check = { level = 5 },
-
-        -- (Optional) The required items
-        required = { { xi.item.CHUNK_OF_ROCK_SALT, 12 } },
-
-        -- (Optional) A table of rarity sorted results can be used instead of the `required` parameter, allowing multiple different types of items to be exchanged
-        exchange =
-        {
-            [xi.item.CHUNK_OF_ROCK_SALT] =
-            {
-                { LQS.COMMON,   CHUNK_OF_COPPER_ORE, "a chunk of copper ore" }, --  (15%)
-                { LQS.UNCOMMON, CHUNK_OF_ZINC_ORE,   "a chunk of zinc ore"   }, --  (10%)
-                { LQS.RARE,     CHUNK_OF_GOLD_ORE,   "a chunk of gold ore"   }, --  ( 5%)
-            },
-        },
-
-        -- (Optional) Setting this will give players the "Quest Accepted" message after the dialog completes
-        quest = "Quest Name",
-
-         -- (Optional) Setting this will complete the quest after the dialog completes
-        reward = { gil = 250 },
-
-        -- (Optional) Include if this should not increment the quest step, ie. reminder dialog
-        step = false,
-
-        -- (Optional) Character variable to store a tally for the total number of items accepted
-        tally = "[LQS]VAR_NAME",
-
-        -- (Required) This event table will be played if the player brings incorrect items
-        declined  =
-        {
-            "This isn't what I wanted.",
-        },
-
-        -- (Required) This event table will be played if the player brings the correct items
-        accepted  =
-        {
-            "Thanks for bringing me this item, here's your reward",
-        },
-    },
+[Shop] = LQS.trade({
+    required  = { { xi.item.LIZARD_TAIL, 12 } },   -- npcUtil format, or function(ctx, trade)
+    accepted  = { "Thanks!" },
+    declined  = { "That's not what I asked for." },
+    reward    = { gil = 600 },
+    step      = false,             -- repeatable
+    tally     = "[LQS]TAILS",      -- adds the items traded to a var
+    keep      = true,              -- give the items back instead of taking them
+    spawn     = { "Ore Melter" },  -- start an encounter instead (levelCap, partySize, scaleVar...)
+    complete  = "Chasing Tales",
 }),
 ```
 
-### LQS.menu
-The menu function must be assigned to an NPC.
+Several trades on one NPC: `list = { case, case, ... }`. Each case takes the same keys and falls back to the trade's own:
+
 ```lua
-["Entity Name"] = LQS.menu({
-    -- (Optional) Setting this will give players the "Quest Accepted" message after the dialog completes
-    quest = "Quest Name",
+LQS.trade({
+    list =
+    {
+        { required = xi.item.MOSSY_SHIELD, accepted = HINT, step = false, keep = true },
+        { required = FULL_SET, accepted = AWAKEN },
+    },
+    declined = LQS.NOTHING,
+})
+```
 
-    -- (Optional) If specified, the affirmative menu option will spawn the provided mob list
-    spawn = { "Mob Name" },
+`exchange` turns an NPC into an exchange: each traded item rolls a reward from its own weighted table (`sellrate` buys anything else for gil).
 
-    -- (Optional) If mob spawns, the spawner can be moved along to another position
-    nextPos = { 1, 1, 1, 0 },
-
-    -- (Optional) If mob spawns, level cap the player for the encounter
-    levelCap = 10,
-
-    -- (Optional) If mob spawns, allow players with this level cap status to receive raise
-    raiseAllowed = true,
-
-    -- (Optional) Require a max party size before allowing the mob to spawn
-    partySize = 6,
-
-    -- (Optional) If mob spawns, set the player's variable, eg. to reset quest state and consume a pop
-    setVar = "[LQS]VAR_NAME",
-
-    -- (Optional) If mob spawns, set a variable for all players in the alliance
-    setVarAll = "[LQS]VAR_NAME",
-
-    -- (Required) Title displayed on the custom menu
-    title = "Here's a question",
-
-    -- (Required) Options displayed on the custom menu
+### LQS.menu
+```lua
+[Helmet] = LQS.menu({
+    title   = "Pick up the helmet?",
+    spawn   = { "Ore Melter" },
     options =
     {
-        {
-            "Here's an answer",
-        },
-        {
-            "Different answer",
-            {
-                "This event table plays if this answer is chosen"
-                { emote = xi.emote.THINK },
-            },
-        },
+        { "No way!" },                                       -- no event: nothing happens
+        { "Let's take a closer look...", spawn = true },     -- spawns the menu's group
+        { "Take it.", event = { "You take the helmet." }, reward = xi.item.MINERS_HELMET },
     },
+    onChoice = nil,       -- or function(ctx, index) to handle every pick yourself
 }),
 ```
 
 ### LQS.defeat
-The defeat function must be assigned to a mob.
 ```lua
-["Entity Name"] = LQS.defeat({
-    -- (Required) A table containing all mobs required to trigger the win condition
-    mobs = { "Mob Name" },
-
-    -- (Required) The name of the spawner to reappear after all mobs are defeated
-    spawner = "Spawner Name",
-
-    -- (Optional) Players who aren't on the current quest step can receive an item for helping, once per JST midnight
-    helper = { { xi.item.CHUNK_OF_ROCK_SALT, 3 } },
-
-    -- (Optional) Applies a JST midnight cooldown to all players by setting the supplied variable to 1 with an expiry
-    cooldown = "[LQS]VAR_NAME",
-
-    -- (Optional) Roll a random amount of points within the specified range for all participants
-    pointsVar = "[LQS]POINTS_NAME",
-    points    = { 15, 20 },
-    message   = "{} gains {} special points.",
-
-    -- (Optional) Award all participants with an amount of EXP
-    exp = 1000,
-
-    -- (Optional) Send all defeated players a Raise of the specified value after combat ends
-    raise = 3,
-
-    -- (Optional) Execute an arbitrary function for all participants
-    func = function(player, step)
-    end,
+[OreMelter] = LQS.defeat({
+    mobs    = { "Ore Melter" },       -- all must be down
+    spawner = "Miner's Helmet",       -- shown again afterwards
+    event   = { "The dragon falls." },
+    exp     = 500,
+    after   = function(ctx) end,
 }),
 ```
+
+Mob entities can also carry `loot`, `pool` (weighted rolls), `points`, `tally`, `title`, `restore` and `util` (see Mob utilities below).
 
 ### LQS.shop
-The shop utility presents players with an automatically paginated list and provides a confirmation dialog before purchasing each item. The amount of points is checked before each item is allowed to be purchased. The quest step will not advance and this function should be assigned to a secondary NPC or at the end of a quest.
-```lua
-["Entity Name"] = LQS.shop({
-    var    = "[LQS]POINTS_NAME",
-    title  = "Purchase an item ({} points)",
-    dialog = { "Optional dialog here" },
-    list   =
-    {
+A points shop: `LQS.shop({ var = "[LQS]POINTS", title = "Points: {}", list = { { "Item", itemId, cost }, ... } })`.
 
-        { "Copper Ore", CHUNK_OF_COPPER_ORE,  5 },
-        { "Zinc Ore",   CHUNK_OF_ZINC_ORE,   10 },
-        { "Gold Ore",   CHUNK_OF_GOLD_ORE,   25 },
-    },
-}),
+## Checks
+A check is a table or a `function(player)`:
+
+```lua
+check = { level = 50, job = xi.job.WAR, vareq = { "[LQS]OTHER", 3 }, item = xi.item.PICKAXE }
 ```
+
+Keys: `level job jobvar gm vareq varin vargt varlt varlist zero allzero timeout cooldown bool item ki skill quest gil cp rank hasTeleport currency eval`. A server adds its own before quests load:
+
+```lua
+LQS.checks.define("member", function(player, value)
+    return (player:getCharVar("[SERVER]MEMBER") == 1) == value
+end)
+```
+
+## Rewards
+One format everywhere (`reward =`, `ctx:reward`, `info.reward`):
+* a number: one item
+* a list: `{ { itemId, qty }, itemId }`
+* a table: `item`, `qty`, `augment`, `gil`, `exp`, `keyitem` (one or a list), `currency = { name, amount }`, `points = { var, amount, message }`, `slots = { bag, n }`, `title`, `byJob = { [xi.job.WAR] = spec, default = spec }`, `feature` (shown by `!quest`)
+
+All or nothing: if the item can't be given, nothing else is.
+
+## Events
+An event is a list of rows. A string is a line of dialog; a leading space continues the paragraph without the name again. `{ object = true }` first drops the NPC's name.
+
+| Row | Options | Does |
+|---|---|---|
+| `{ delay = ms }` | | waits (`delay` may also ride on any other row) |
+| `{ emote = id }` | `entity` | an emote, by the NPC or another entity (`"player"` for the player) |
+| `{ narrate = "looks around." }` | `name` | a third-person emote line |
+| `{ face = "player" }` | `entity` | turn to the player, an angle, or another entity |
+| `{ say = "You've helped {} times.", var = "[VAR]" }` | | a line with a var filled in |
+| `{ message = "..." }` | `after` | a system message |
+| `{ spawn = { names } }`, `{ despawn = { names } }` | | show or hide quest entities for this player |
+| `{ glimpse = { ms, { names } } }` | | show entities for a moment |
+| `{ animate = id }` | `entity`, `target`, `mode` | an effect animation |
+| `{ pose = id, target = "player", duration = ms }` | | hold the player in an animation |
+| `{ action = { id, anim } }` | `entity`, `target`, `playerOnly` | an action packet |
+| `{ packet = "cate" }` | `entity`, `target` | a FourCC animation |
+| `{ addEffect = ... }`, `{ removeEffect = id }` | | status effects |
+| `{ charvar = "[VAR]", value = n }` | `expiry` | set a char var |
+| `{ teleport = id or { x, y, z, rot, zone } }` | `teleportDelay`, `region` | teleport |
+| `{ music = id }`, `{ pos = { ... } }`, `{ special = id }`, `{ costume = id }` | | |
+| `{ menu = { title, options } }` | | open a menu at this point |
+| a function | | called with `(player, ctx)` |
+
+A function in place of a whole event (an NPC's `default`, say) is called with `(player, npc, ctx)`.
+
+### LQS.event
+Play an event from your own code: `LQS.event(player, npc, { "Hello!", { emote = xi.emote.WAVE } })`.
+
+### LQS.look
+The look utility builds NPC looks without converting each model ID into a little endian byte string (eg. `"0x01000F020010032008300A400850006000700000"`). Model IDs are the `MId` in [LSB's `item_equipment.sql`](https://github.com/LandSandBoat/server/blob/base/sql/item_equipment.sql).
+
+```lua
+LQS.look({ race = xi.race.ELVAAN_F, face = LQS.face.B2, head = 0, body = 6, hand = 6, legs = 6, feet = 6, main = 0, offh = 0 })
+```
+
+## Hooks
+Server-specific behaviour goes in hooks, set after LQS loads:
+
+```lua
+LQS.hooks.onQuestAccepted  = function(player, name, opts) end   -- opts: { mission, music, info }
+LQS.hooks.onQuestCompleted = function(player, name, opts) end
+LQS.hooks.questAvailable   = function(player, info) return true end  -- false: the quest stays closed
+LQS.hooks.onMobDeath       = function(mob, player, entity) end
+LQS.hooks.giveCurrency     = function(player, name, amount) end
+```
+
+An entity with its own `onTrigger(ctx)` skips the steps entirely, which is how a mob utility adds a companion NPC (a loot chest, say).
+
+## Validation
+`LQS.add` checks the whole quest and refuses one with faults, naming the quest and the place (a running version keeps working when you save a broken file):
+
+```
+[LQS] Here Be Dragons: steps[2]["Miner's Helmet"].event[3].emotion: renamed to narrate
+[LQS] Here Be Dragons: steps[1]["Khartes"].check.lvl: unknown check
+```
+
+It checks builder options, check keys, event rows, entity names used in steps and events, mobs without a `base`, and quest vars used twice. Names over 15 characters are a warning (the client shows 15). Set `LQS.settings.VALIDATE = "warn"` to load quests with faults anyway.
+
+## Mob utilities
+Add behaviour to a quest mob with `util = { ... }`: `LQS.util.ignorePet`, `LQS.util.reqPenalty`, tethers, fixates, doom roulettes, rage timers and more (`lib/LQS/util/`). Each is a table of mob callbacks LQS composes for you.
 
 ## Standalone NPCs
 ### LQS.npc
-For NPCs that don't need quest steps — shops, services, teleporters, etc. Supports hot-reloading of handlers on file save.
+NPCs that aren't part of a quest. Handlers take `ctx` (with `ctx.quest` nil).
 
 ```lua
-local m = Module:new("my_shop")
+local m = Module:new("my_npc")
 
 LQS.npc(m, {
     ["Port_Jeuno"] =
     {
         {
-            name = "Shop Keeper",
-            pos  = { -22, 0, -77, 128 },
-            look = LQS.look({ race = xi.race.HUME_M, face = LQS.face.A3, body = 21 }),
-            onTrigger = function(player, npc)
-                LQS.event(player, npc, { "Welcome to my shop!" })
+            name      = "Shop Keeper",
+            look      = 1415,
+            pos       = { -22.000, 0.000, -77.000, 128 },
+            onTrigger = function(ctx)
+                ctx:event({ "Welcome!" })
             end,
         },
     },
@@ -349,88 +334,64 @@ LQS.npc(m, {
 return m
 ```
 
-Supports all entity properties: `hideName`, `hideHP`, `untargetable`, `size`, `hidden`, `listener(s)`, `animation`.
-
-#### Size Constants
-| Constant | Value | Effect |
-|----------|-------|--------|
-| `LQS.LARGE` | 2 | Large model (NPCs: entityFlags bit 2, Mobs: modelSize 2) |
-| `LQS.EXTRA_LARGE` | 3 | Extra large model (Mobs only: modelSize 3) |
-
 ## Extensions
-Extensions live in `lib/LQS/` and add functions to the `LQS` table. They are loaded automatically by the core.
+Extensions live in `lib/LQS/` and add functions to the `LQS` table.
 
 ### LQS.teleporter
-Returns an `onTrigger` handler for config-driven teleporter NPCs with paginated menus and currency costs.
+Returns an `onTrigger` handler for config-driven teleporter NPCs with paginated menus and costs.
 
 ```lua
-local m = Module:new("my_teleporter")
-
 LQS.npc(m, {
     ["Port_Jeuno"] =
     {
         {
-            name = "Dimensional Guide",
-            pos  = { 10, 0, -20, 128 },
-            look = 1415,
+            name      = "Dimensional Guide",
+            pos       = { 10, 0, -20, 128 },
+            look      = 1415,
             onTrigger = LQS.teleporter({
-                destinations = {
+                destinations =
+                {
                     { name = "Sanctuary", pos = { -37, 0, -141, 69, 121 }, costs = { gil = 500 }, level = 25 },
                     { name = "Crag of Dem", teleport = xi.teleport.id.DEM, costs = { cp = 100 } },
                 },
                 preTeleportEffects = { LQS.signetEffect() },
-                animation = { actionID = 6, animID = 600 },
             }),
         },
     },
 })
-
-return m
 ```
 
 ### LQS.outpostTeleporter
-Pre-configured outpost warper with all 17 regions, unlock checks, and costs.
-
-```lua
-local m = Module:new("my_outpost_warper")
-
-LQS.npc(m, {
-    ["Lower_Jeuno"] =
-    {
-        {
-            name = "Outpost Warper",
-            pos  = { 24.155, -1.0, 45.905, 149 },
-            look = 1415,
-            onTrigger = LQS.outpostTeleporter({
-                preTeleportEffects = { LQS.signetEffect() },
-            }),
-        },
-    },
-})
-
-return m
-```
+A ready outpost warper: all 17 regions, unlock checks and retail costs. Use it as `onTrigger = LQS.outpostTeleporter({ preTeleportEffects = { LQS.signetEffect() } })`.
 
 ### LQS.signetEffect
-Helper for standard Signet effect with rank-based duration. Used with teleporter's `preTeleportEffects`.
-
-```lua
-preTeleportEffects = { LQS.signetEffect() }
-```
+The standard Signet effect with rank-based duration, for `preTeleportEffects`.
 
 ### Writing Extensions
-Create a file in `lib/LQS/` that adds functions to the `LQS` table. Extensions are loaded automatically by the module loader (alphabetically after `LQS.lua`).
+A file in `lib/LQS/` that adds to the `LQS` table. LSB loads `lib/LQS/` before `lib/LQS.lua`, so an extension may not call LQS while it loads, only from the functions it defines.
 
 ```lua
 -- lib/LQS/my_extension.lua
 LQS = LQS or {}
 
 LQS.myThing = function(config)
-    return function(player, npc)
-        -- Return an onTrigger handler
+    return function(ctx)
+        -- an onTrigger handler
     end
 end
+
+return {}
 ```
+
+## Migrating from 2.x
+3.0 changes the API, not your players' progress: quest vars and step numbers mean the same. `tools/migrate_v3.py` converts quest files:
+
+```sh
+python3 tools/migrate_v3.py --check path/to/quests   # list what would change
+python3 tools/migrate_v3.py path/to/quests           # rewrite in place
+```
+
+It handles `quest` (to `accept` or `complete`, by the same rules 2.x used), `beginQuest`, `spawn = "NPC"` (to `as`), `name = ""` (to `object = true`), defeat `func` (to `after`), the event renames (`emotion` to `narrate`, `fmt` to `say`, player `animation` to `pose`), and hand-written handlers (`function(player, npc)` to `function(ctx)` with the old names unpacked). Code that calls a builder's result as a function, or a quest's own helpers that LQS calls, need a look by hand: the tests and the validator point at them.
 
 ## Tests
 LQS comes with a test harness that runs every quest without a server: a small stand-in for the LandSandBoat map server (players, NPCs, mobs, zones, timers, menus and trades) using LSB's own enums and `npc_util.lua`. A walker plays each quest from its `steps` table: it meets each step's checks, talks to NPCs, picks menu options, trades the required items and kills the mobs that spawn, then checks the quest finished, each reward arrived once, and talking to everyone again changes nothing.

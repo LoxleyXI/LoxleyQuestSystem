@@ -97,7 +97,7 @@ end
 -- Quests
 -----------------------------------
 if #targets == 0 then
-    targets = { root .. "questpack", root .. "npcpack" }
+    targets = { root .. "questpack", root .. "npcpack", here .. "examples" }
 end
 
 local files = {}
