@@ -47,7 +47,7 @@ function W.instrument()
     LQS.defeat = tagged("defeat", LQS.defeat)
     -- LQS.checks is a callable table (it carries define): keep it one
     local checks = LQS.checks
-    LQS.checks = setmetatable({ define = checks.define }, {
+    LQS.checks = setmetatable({ define = type(checks) == "table" and checks.define or nil }, {
         __call = function(_, tbl)
             local fn = checks(tbl)
             tags[fn] = { kind = "checks", obj = tbl }
