@@ -151,11 +151,9 @@ LQS.menu = function(obj)
                     obj.default.condition ~= nil and
                     player:getCharVar(obj.default.condition[1]) == obj.default.condition[2]
                 then
-                    LQS.event(player, npc, obj.default.dialog, ctx)
-                elseif type(obj.default) == "table" then
-                    LQS.event(player, npc, obj.default, ctx)
+                    LQS.event(player, npc, P.eventOf(ctx, obj.default.dialog), ctx)
                 else
-                    LQS.event(player, npc, { obj.default }, ctx)
+                    LQS.event(player, npc, P.eventOf(ctx, obj.default), ctx)
                 end
 
                 return
@@ -183,10 +181,6 @@ LQS.menu = function(obj)
 
             if obj.before ~= nil then
                 local before = P.eventOf(ctx, obj.before)
-
-                if type(before) ~= "table" then
-                    before = { before }
-                end
                 LQS.event(player, npc, before, ctx)
                 delay = LQS.eventDelay(before)
             end

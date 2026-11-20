@@ -26,15 +26,12 @@ LQS.ctx = function(fields)
     return P.newCtx(fields or {})
 end
 
--- An event, or the key of one in this entity's dialog table ("START")
+-- An event, or the key of one in this entity's dialog table ("START").
+-- A string is always a key (validation checks the key exists).
 function P.eventOf(ctx, event)
-    if
-        type(event) == "string" and
-        ctx ~= nil and ctx.entity ~= nil and
-        type(ctx.entity.dialog) == "table" and
-        ctx.entity.dialog[event] ~= nil
-    then
-        return ctx.entity.dialog[event]
+    if type(event) == "string" then
+        local dialog = ctx and ctx.entity and ctx.entity.dialog
+        return type(dialog) == "table" and dialog[event] or nil
     end
 
     return event

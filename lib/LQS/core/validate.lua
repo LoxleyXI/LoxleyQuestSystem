@@ -193,7 +193,18 @@ function P.validateQuest(tbl)
         end
     end
 
-    local function markEvent(event, path)
+    local function markEvent(event, path, entity)
+        -- A string is a key into the entity's dialog table
+        if type(event) == "string" then
+            local dialog = entity and entity.dialog
+
+            if type(dialog) ~= "table" or dialog[event] == nil then
+                err(path, string.format("'%s' is not a key in this entity's dialog table", event))
+            end
+
+            return
+        end
+
         if type(event) ~= "table" then
             return
         end
@@ -223,21 +234,21 @@ function P.validateQuest(tbl)
         end
     end
 
-    markUsed = function(obj, path)
+    markUsed = function(obj, path, entity)
         markNames(obj.as)
         markNames(obj.spawn)
 
         for _, key in ipairs({ "event", "accepted", "declined", "fail", "before" }) do
-            markEvent(obj[key], path .. "." .. key)
+            markEvent(obj[key], path .. "." .. key, entity)
         end
 
         for i, case in ipairs(obj.list or {}) do
-            markUsed(case, path .. ".list[" .. i .. "]")
+            markUsed(case, path .. ".list[" .. i .. "]", entity)
         end
 
         for i, opt in ipairs(obj.options or {}) do
             if type(opt) == "table" then
-                markEvent(opt.event or (type(opt[2]) == "table" and opt[2] or nil), path .. ".options[" .. i .. "]")
+                markEvent(opt.event or (type(opt[2]) == "table" and opt[2] or nil), path .. ".options[" .. i .. "]", entity)
             end
         end
     end
@@ -271,7 +282,7 @@ function P.validateQuest(tbl)
                     end
 
                     checkTable(where .. ".check", h.obj.check)
-                    markUsed(h.obj, where)
+                    markUsed(h.obj, where, names[name])
                 end
 
                 if type(entry) == "table" then
