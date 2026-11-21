@@ -78,8 +78,8 @@ A new API. Players' progress carries over: quest vars and step numbers mean what
 ## 2.4.0
 
 The last 2.x release (branch `v2`).
-- Synced with the copy in use on CatsEyeXI (add-effect riders, charvar expiry in events,
-  `playerOnly` action packets, the glimpse timer).
+- Add-effect riders, charvar expiry in events, `playerOnly` action packets, and the glimpse
+  despawn on the player's timer.
 - Fixes found by the new tests: `LQS.defeat` with a check on the mob crashed; the points multiplier
   crashed; `resetStep` read an undefined global; menu item rewards gave the wrong option's item;
   trades and menus spawning two or more mobs gave their reward and advanced twice; a failed trade
