@@ -1,5 +1,5 @@
 -----------------------------------
--- Rustling Feathers (Lv5)
+-- Lode of Gil
 -----------------------------------
 -- Copyright (c) 2025 LoxleyXI
 --
