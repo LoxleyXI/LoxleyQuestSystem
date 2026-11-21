@@ -17,11 +17,12 @@ If you found this module helpful, please consider kindly supporting my other wor
 * Each step can be gated by any number of requirements
 * Custom quest tracker with a new `!quest` command providing quest info and hints
 * LQS Quest modules are fully reloadable and will refresh simply by saving the file
+* Every quest is checked when it loads, and a test harness plays each one through without a server
 
 (ie. You can update NPCs or implement new quest steps without any need for a server restart!)
 
 ## Setup
-* `LQS.lua` must be located inside `modules/` and included to `init.txt` before any of your quests
+* Copy `lib/LQS.lua` and the `lib/LQS/` folder into your modules and include them in `init.txt` before any of your quests (LSB loads `lib/LQS/` first on its own). `tools/sync.sh <your lib folder>` copies them and refuses to overwrite edits made there
 * Also include `questpack` inside `init.txt` to load the provided additional quests
 * Initialise your new quests using `LQS.add()`, following the examples provided in this repository
 * Save time by using my [`pos` Ashita Addon](https://github.com/LoxleyXI/ashita-addons) to copy NPC/Mob positions straight to the clipboard
@@ -31,7 +32,7 @@ If you found this module helpful, please consider kindly supporting my other wor
 **LQS now comes bundled with Questpack, providing 25+ new quests to experience.** Each quest features tastefully written dialog, appropriate to the game's setting and a variety of new rewards, including augmented items and repeatable gil rewards. These quests are designed to better balance the starting areas and provide meaningful content for new players to complete at the start of their journey.
 
 * San d'Oria **(7)**: Hatchet Job, Hungry Customer, In Sheep's Clothing, Rambling Around, Staying Afloat, Fleeing Daylight, Ring Around the Roses
-* Bastok **(8)**: Bird Search, Bug Report, Chasing Tails, Mining My Business, That's All Folks, Earthen Echoes, Running Rings Around, Lode of Gil
+* Bastok **(8)**: Bird Search, Bug Report, Chasing Tales, Mining My Business, That's All Folks, Earthen Echoes, Running Rings Around, Lode of Gil
 * Windurst **(7)**: Down to Earth, Neck and Neck, Only the Dose, Reaping Rewards, Rustling Feathers, Slowing Down, Give Me a Ring
 * Other Areas **(3)**: Head First, Here Be Dragons, Likely Tails
 * Aht Urhgan **(2)**: Insult to Gingery, Pecking Battles
@@ -395,7 +396,9 @@ python3 tools/migrate_v3.py --check path/to/quests   # list what would change
 python3 tools/migrate_v3.py path/to/quests           # rewrite in place
 ```
 
-It handles `quest` (to `accept` or `complete`, by the same rules 2.x used), `beginQuest`, `spawn = "NPC"` (to `as`), `name = ""` (to `object = true`), defeat `func` (to `after`), the event renames (`emotion` to `narrate`, `fmt` to `say`, player `animation` to `pose`), and hand-written handlers (`function(player, npc)` to `function(ctx)` with the old names unpacked). Code that calls a builder's result as a function, or a quest's own helpers that LQS calls, need a look by hand: the tests and the validator point at them.
+It handles `quest` (to `accept` or `complete`, by the same rules 2.x used), `beginQuest`, `spawn = "NPC"` (to `as`), `name = ""` (to `object = true`), defeat `func` (to `after`), the event renames (`emotion` to `narrate`, `fmt` to `say`, player `animation` to `pose`), positional menu options (`{ "Yes", true }` to `spawn = true`, an event to `event =`, a reward to `reward =`), and hand-written handlers (`function(player, npc)` to `function(ctx)` with the old names unpacked). Handlers inside another system's call (a registration that passes `(player, npc)`) are left alone. Code that calls a builder's result as a function, or a quest's own helpers that LQS calls, need a look by hand: the tests and the validator point at them.
+
+In 3.0, 2.x forms are refused at load with a message naming the replacement (`steps[2]["X"].quest: moved to accept or complete`). Event rows with 2.x names in your own `LQS.event` calls are skipped with a log line. See `CHANGELOG.md` for everything that changed.
 
 ## Tests
 LQS comes with a test harness that runs every quest without a server: a small stand-in for the LandSandBoat map server (players, NPCs, mobs, zones, timers, menus and trades) using LSB's own enums and `npc_util.lua`. A walker plays each quest from its `steps` table: it meets each step's checks, talks to NPCs, picks menu options, trades the required items and kills the mobs that spawn, then checks the quest finished, each reward arrived once, and talking to everyone again changes nothing.

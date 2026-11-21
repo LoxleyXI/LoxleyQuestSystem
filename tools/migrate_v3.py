@@ -21,13 +21,18 @@ progress carries over):
     emotion -> narrate, fmt -> say, { animation = N, ..., duration } -> pose,
     { noturn = true } rows removed
 
+  Menu options take named fields:
+    { "Label", true }  ->  { "Label", spawn = true }
+    { "Label", { ... } } / function  ->  event = ...;  a third element  ->  reward = ...
+
   Hand-written handlers take ctx:
     onTrigger = function(player, npc)          -> function(ctx) local player, npc = ctx.player, ctx.npc
     onTrade   = function(player, npc, trade)   -> ... ctx.trade
     onMobDeath / mob step functions (mob, player) -> ctx.mob, ctx.player
     default   = function(player, npc)          -> unchanged (an event: ctx is added third)
     after     = function(player)               -> ctx
-  including local functions used as handlers by name.
+  including local functions used as handlers by name. Handlers inside another
+  system's call (a registration that passes (player, npc)) are left alone.
 
 Everything else is left alone. Read the diff; then run the tests.
 """
@@ -260,6 +265,29 @@ def body_indent(src, func_end):
     return line[: len(line) - len(line.lstrip())] or "    "
 
 
+def foreign_call(src, mask, pos):
+    """The name of a call enclosing pos that isn't LQS's (another system's
+    registration, which passes its handlers (player, npc)), else None."""
+    depth_opens = []
+    for i in range(0, pos):
+        if not mask[i]:
+            continue
+        c = src[i]
+        if c in "({[":
+            depth_opens.append(i)
+        elif c in ")}]" and depth_opens:
+            depth_opens.pop()
+    for o in depth_opens:
+        if src[o] != "(":
+            continue
+        m = re.search(r"([A-Za-z_][\w.:]*)\s*$", src[max(0, o - 80):o])
+        if not m or m.group(1) in ("function",) or m.group(1).endswith("function"):
+            continue
+        if not m.group(1).startswith("LQS."):
+            return m.group(1)
+    return None
+
+
 def convert_function(src, mask, fstart, params_open, roles, notes, label):
     close = match_close(src, mask, params_open)
     params = [p.strip() for p in src[params_open + 1:close].split(",") if p.strip()]
@@ -275,6 +303,7 @@ def migrate_handlers(src, notes):
     mask = code_mask(src)
     edits = []
     named = {}  # local function name -> roles
+    foreign = set()  # handlers passed to another system's calls
 
     # Inline: key = function(...)
     # (onMobDeath = function on an entity is a raw LSB callback; step mob handlers
@@ -291,6 +320,10 @@ def migrate_handlers(src, notes):
         first = src[params_open + 1:match_close(src, mask, params_open)].split(",")[0].strip()
         if key == "after" and first == "mob":
             continue  # an entity's own after(mob, player): unchanged in 3.0
+        caller = foreign_call(src, mask, m.start())
+        if caller:
+            notes.append(f"{key}: left alone, inside {caller}(...)")
+            continue
         e = convert_function(src, mask, m.start(), params_open, roles, notes, key)
         if e:
             edits.append(e)
@@ -300,7 +333,15 @@ def migrate_handlers(src, notes):
     for m in re.finditer(r"\b(onTrigger|onTrade)\s*=\s*([A-Za-z_]\w*)\s*[,}\n]", src):
         if not mask[m.start()] or m.group(2) in ("nil", "true", "false"):
             continue
+        caller = foreign_call(src, mask, m.start())
+        if caller:
+            foreign.add(m.group(2))
+            notes.append(f"{m.group(2)}: left alone, passed to {caller}(...)")
+            continue
         named.setdefault(m.group(2), ROLES[m.group(1)])
+
+    for name in foreign:
+        named.pop(name, None)
 
     field_of = {"ctx.player": "player", "ctx.npc": "npc", "ctx.trade": "trade", "ctx.mob": "mob"}
 
@@ -430,11 +471,74 @@ def migrate_events(src, notes):
     return src2
 
 
+# ---------------------------------------------------------------------------
+# Menu options take named fields: { label, true } -> spawn = true,
+# { label, event } -> event =, a third element -> reward =
+# ---------------------------------------------------------------------------
+def top_level_items(src, mask, start, end):
+    """(item_start, item_end) for the comma-separated items at depth 1 of src[start:end]."""
+    items, depth, item_start = [], 0, start + 1
+    for i in range(start, end + 1):
+        if not mask[i]:
+            continue
+        c = src[i]
+        if c in "({[":
+            depth += 1
+        elif c in ")}]":
+            depth -= 1
+            if depth == 0:
+                items.append((item_start, i))
+        elif c == "," and depth == 1:
+            items.append((item_start, i))
+            item_start = i + 1
+    return [(a, b) for a, b in items if src[a:b].strip()]
+
+
+def migrate_menu_options(src, notes):
+    mask = code_mask(src)
+    edits = []
+    for m in re.finditer(r"LQS\.menu\s*\(", src):
+        if not mask[m.start()]:
+            continue
+        call_open = m.end() - 1
+        call_close = match_close(src, mask, call_open)
+        for om in re.finditer(r"\boptions\s*=\s*\{", src[call_open:call_close]):
+            ob = call_open + om.end() - 1
+            if not mask[ob]:
+                continue
+            oe = match_close(src, mask, ob)
+            for a, b in top_level_items(src, mask, ob, oe):
+                text = src[a:b]
+                lead = len(text) - len(text.lstrip())
+                if not text.lstrip().startswith("{"):
+                    continue
+                eo = a + lead
+                ec = match_close(src, mask, eo)
+                parts = top_level_items(src, mask, eo, ec)
+                positional = [(pa, pb) for pa, pb in parts if not re.match(r"\s*[A-Za-z_]\w*\s*=(?!=)", src[pa:pb])]
+                for index, (pa, pb) in enumerate(positional[1:3], start=2):
+                    value = src[pa:pb]
+                    vlead = len(value) - len(value.lstrip())
+                    at = pa + vlead
+                    stripped = value.strip()
+                    if index == 2 and stripped == "true":
+                        edits.append((at, at + 4, "spawn = true"))
+                        notes.append("menu option: true -> spawn = true")
+                    elif index == 2:
+                        edits.append((at, at, "event = "))
+                        notes.append("menu option: event -> event =")
+                    elif index == 3:
+                        edits.append((at, at, "reward = "))
+                        notes.append("menu option: reward -> reward =")
+    return apply_edits(src, edits)
+
+
 def migrate(src):
     notes = []
     src = migrate_events(src, notes)
     src = migrate_builders(src, notes)
     src = migrate_handlers(src, notes)
+    src = migrate_menu_options(src, notes)
     return src, notes
 
 
