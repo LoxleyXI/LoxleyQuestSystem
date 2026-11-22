@@ -25,15 +25,13 @@ jobs:
           sudo ln -sf $(ls /usr/local/bin/luajit-2.1* | head -1) /usr/local/bin/luajit
           echo "LQS_LUAJIT=luajit" >> "$GITHUB_ENV"
 
-      # Only the LandSandBoat files the harness reads: enums, a few globals, the binding lists
+      # Only the LandSandBoat files the harness reads: enums, scripts/globals, the binding lists
       - name: LandSandBoat (sparse)
         run: |
           git clone --depth 1 --filter=blob:none --sparse https://github.com/LandSandBoat/server.git lsb
           cd lsb
           git sparse-checkout set --no-cone \
-            /scripts/enum /scripts/utils \
-            /scripts/globals/npc_util.lua /scripts/globals/teleports.lua /scripts/globals/quests.lua \
-            /scripts/globals/missions.lua /scripts/globals/shop.lua /scripts/globals/battlefield.lua /scripts/globals/interaction \
+            /scripts/enum /scripts/utils /scripts/globals \
             /data/enums /data/status_effects.yaml \
             /src/map/lua/lua_base_entity.cpp /src/map/lua/lua_baseentity.cpp /src/map/lua/luautils.cpp /src/common/lua.cpp
           echo "LSB_DIR=$PWD" >> "$GITHUB_ENV"
