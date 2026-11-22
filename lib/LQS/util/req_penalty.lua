@@ -12,7 +12,8 @@ LQS.util = LQS.util or {}
 
 LQS.util.reqPenalty = {
     onMobSpawn = function(mob)
-        mob:addListener("WEAPONSKILL_TAKE", "LQS_REQ_PENALTY", function(mobArg, user, wsid)
+        mob:addListener("WEAPONSKILL_TAKE", "LQS_REQ_PENALTY", function(user, mobArg, skill)
+            local wsid = LQS.util.skillId(skill)
             if wsid == 226 then -- Requiescat
                 mobArg:setTP(math.max(mobArg:getTP(), 1000))
             end

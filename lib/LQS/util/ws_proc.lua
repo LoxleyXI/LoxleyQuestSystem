@@ -46,7 +46,8 @@ LQS.util.wsProc = function(config)
             local wsType = pickWeakness(mob)
             announceWeakness(mob, wsType)
 
-            mob:addListener("WEAPONSKILL_TAKE", "LQS_WSP_CHECK", function(target, user, wsid)
+            mob:addListener("WEAPONSKILL_TAKE", "LQS_WSP_CHECK", function(user, target, skill)
+                local wsid = LQS.util.skillId(skill)
                 if not target:isAlive() then return end
                 if user == nil or not user:isPC() then return end
 

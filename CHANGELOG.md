@@ -5,6 +5,9 @@
 - Tests: every quest file is checked for globals it reads that nothing defines, on every line
   (not only the lines a walk reaches); `test/run.lua --globals <files>` checks other Lua files the
   same way. Servers name globals the harness doesn't load in `W.knownGlobals`.
+- `WEAPONSKILL_TAKE` listeners in `wsProc`, `reqPenalty` and `vulnerability` take LSB's current
+  argument order (user, target, skill) and accept the skill as an id or an object
+  (`LQS.util.skillId`).
 - Questpack: Running Rings Around, Reaping Rewards and Neck and Neck read names that didn't exist
   (an NPC's emote in a reminder, and two unused fields).
 

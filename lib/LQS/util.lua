@@ -24,6 +24,20 @@ LQS.util = LQS.util or {}
 -- Shared Helpers
 -----------------------------------
 
+-- A weaponskill listener's skill as an id: LSB passes the id, or (newer LSB) the
+-- skill itself. WEAPONSKILL_TAKE listeners receive (user, target, skill, tp, action).
+LQS.util.skillId = function(skill)
+    if type(skill) == "number" then
+        return skill
+    end
+
+    if skill ~= nil and skill.getID then
+        return skill:getID()
+    end
+
+    return skill
+end
+
 -- Iterate all players on the mob's enmity list
 LQS.util.forEachEngaged = function(mob, func)
     local enmityList = mob:getEnmityList()

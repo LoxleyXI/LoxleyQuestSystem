@@ -771,4 +771,10 @@ test("globals: an undefined name is found on every line, defined ones are not", 
     T.eq(missing[1] and missing[1].line, 3, "its line")
 end))
 
+
+test("util: a weaponskill listener's skill reads as an id either way", wrap(function()
+    T.eq(LQS.util.skillId(226), 226, "an id")
+    T.eq(LQS.util.skillId({ getID = function() return 226 end }), 226, "a skill")
+end))
+
 return T
