@@ -35,7 +35,7 @@ jobs:
             /scripts/globals/npc_util.lua /scripts/globals/teleports.lua /scripts/globals/quests.lua \
             /scripts/globals/missions.lua /scripts/globals/shop.lua /scripts/globals/battlefield.lua /scripts/globals/interaction \
             /data/enums /data/status_effects.yaml \
-            /src/map/lua/lua_base_entity.cpp /src/map/lua/lua_baseentity.cpp /src/map/lua/luautils.cpp
+            /src/map/lua/lua_base_entity.cpp /src/map/lua/lua_baseentity.cpp /src/map/lua/luautils.cpp /src/common/lua.cpp
           echo "LSB_DIR=$PWD" >> "$GITHUB_ENV"
           echo "LandSandBoat $(git log -1 --format='%h %ci')"
 

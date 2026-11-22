@@ -9,8 +9,8 @@
 --
 -- A name counts as defined when it exists once the harness has loaded
 -- everything (LSB's enums and globals, the server's preloads, LQS, the quest),
--- when the file sets it itself, when LSB's C++ registers it (luautils.cpp and
--- the binding lists), when LSB's scripts/globals set it at the top level, or
+-- when the file sets it itself, when LSB's C++ registers it (luautils.cpp,
+-- common/lua.cpp and the binding lists), when LSB's scripts/globals set it at the top level, or
 -- when a server extension names it in W.knownGlobals.
 -----------------------------------
 local util = require("jit.util")
@@ -138,6 +138,7 @@ function G.undefined(path, extra)
 
     if lsb then
         table.insert(files, lsb .. "/src/map/lua/luautils.cpp")
+        table.insert(files, lsb .. "/src/common/lua.cpp")   -- fmt, print, tostring
         lsbGlobals(lsb, known)
     end
 
