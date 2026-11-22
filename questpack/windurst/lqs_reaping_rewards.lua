@@ -91,7 +91,7 @@ LQS.add(m, {
                     event =
                     {
                         "Brrr~ing me a mug of honeyed egg and I'll sharrre some sickles.",
-                        { entity = Fha, emote = xi.emote.HARVESTING },
+                        { entity = FhaMhakyaa, emote = xi.emote.HARVESTING },
                         { delay  = 2000 },
                     },
                 }),
@@ -101,13 +101,13 @@ LQS.add(m, {
                     reward   = info.reward,
                     declined =
                     {
-                        { entity = Fha, emote = xi.emote.NO },
+                        { entity = FhaMhakyaa, emote = xi.emote.NO },
                         "Sorry but my diet is verrr~y particular.",
                         { delay  = 500 },
                     },
                     accepted =
                     {
-                        { entity = Fha, emote = xi.emote.PRAISE},
+                        { entity = FhaMhakyaa, emote = xi.emote.PRAISE},
                         "Mmmm... grrreat! Here arrr~e your sickles.",
                         { delay  = 500 },
                     },
@@ -120,7 +120,7 @@ LQS.add(m, {
                 event =
                 {
                     "I'm harrr~d at work out here.",
-                    { entity = Fha, emote = xi.emote.HARVESTING },
+                    { entity = FhaMhakyaa, emote = xi.emote.HARVESTING },
                     { delay  = 2000 },
                 },
             }),

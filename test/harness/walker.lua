@@ -159,6 +159,10 @@ local satisfy =
 -- Extensions add ways to meet their own check keys here
 W.satisfy = satisfy
 
+-- Extensions name globals their server defines that the harness doesn't load
+-- (set by other modules at runtime): W.knownGlobals.name = true
+W.knownGlobals = { super = true }  -- super: given to module overrides by LSB's module loader
+
 -- Extensions prepare the walking player here: fn(player, quest), before the walk
 -- (a server whose questAvailable hook gates quests by player type, say)
 W.playerSetup = {}

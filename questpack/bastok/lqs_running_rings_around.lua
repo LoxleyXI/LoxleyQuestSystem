@@ -218,7 +218,7 @@ LQS.add(m, {
                 step  = false,
                 event =
                 {
-                    { entity = Verona1, emote = xi.emote.NO },
+                    { entity = Verona, emote = xi.emote.NO },
                     "Excuse me, can't you see I'm very busy? I am quite important after all."
                 },
             }),

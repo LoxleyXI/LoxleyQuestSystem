@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.1
+
+- Tests: every quest file is checked for globals it reads that nothing defines, on every line
+  (not only the lines a walk reaches); `test/run.lua --globals <files>` checks other Lua files the
+  same way. Servers name globals the harness doesn't load in `W.knownGlobals`.
+- Questpack: Running Rings Around, Reaping Rewards and Neck and Neck read names that didn't exist
+  (an NPC's emote in a reminder, and two unused fields).
+
 ## 3.0.0
 
 A new API. Players' progress carries over: quest vars and step numbers mean what they did in 2.x.

@@ -128,6 +128,24 @@ if os.getenv("LQS_HARNESS_EXT") then
     dofile(os.getenv("LQS_HARNESS_EXT"))(S, W)
 end
 
+-- LQS_GLOBALS_ONLY: a file that isn't a quest (a helper, a system, data): check
+-- the globals it reads against everything loaded, without running it
+if os.getenv("LQS_GLOBALS_ONLY") then
+    local missing, gerr = require("harness.globals").undefined(questFile, W.knownGlobals)
+    local notes = {}
+
+    if gerr then
+        table.insert(notes, "could not compile: " .. tostring(gerr))
+    end
+
+    for _, g in ipairs(missing) do
+        table.insert(notes, string.format("undefined global '%s' (line %d)", g.name, g.line))
+    end
+
+    finish(#notes > 0 and "FAIL" or "PASS", questFile .. " :: globals", notes)
+    os.exit(#notes > 0 and 1 or 0)
+end
+
 -- The harness always wants LQS's warnings
 LQS.settings.WARNINGS = true
 
@@ -152,6 +170,22 @@ if not ok then
 end
 
 S.initZones()
+
+-- Globals the file reads that nothing defines (a misspelt or missing name):
+-- every line, whether or not the walk reaches it
+local globalNotes = {}
+
+do
+    local missing, gerr = require("harness.globals").undefined(questFile, W.knownGlobals)
+
+    if gerr then
+        table.insert(globalNotes, "globals not checked: " .. tostring(gerr))
+    end
+
+    for _, g in ipairs(missing) do
+        table.insert(globalNotes, string.format("undefined global '%s' (line %d)", g.name, g.line))
+    end
+end
 
 -- What LQS said while the quest loaded (validation faults, warnings)
 local loadNotes = {}
@@ -232,9 +266,15 @@ if #W.quests == 0 then
         end
     end
 
+    for _, n in ipairs(globalNotes) do
+        table.insert(notes, n)
+    end
+
+    local bad = #S.errors > errStart or #globalNotes > 0
+
     table.insert(notes, string.format("npcs: %d talked to, every menu option tried", #npcs))
-    finish(#S.errors > errStart and "FAIL" or "PASS", questFile, notes)
-    os.exit(#S.errors > errStart and 1 or 0)
+    finish(bad and "FAIL" or "PASS", questFile, notes)
+    os.exit(bad and 1 or 0)
 end
 
 -----------------------------------
@@ -242,10 +282,19 @@ end
 -----------------------------------
 local exitCode = 0
 
-for _, quest in ipairs(W.quests) do
+for questIndex, quest in ipairs(W.quests) do
     local label = string.format("%s :: %s", questFile, quest.info and quest.info.name or "?")
     local notes = {}
     local failed = false
+
+    -- The file's undefined globals, reported once (on its first quest)
+    if questIndex == 1 and #globalNotes > 0 then
+        for _, n in ipairs(globalNotes) do
+            table.insert(notes, n)
+        end
+
+        failed = true
+    end
 
     -- Load-time faults from LQS's own validation: errors fail the quest
     for _, text in ipairs(loadNotes) do

@@ -5,8 +5,12 @@
 -- luajit test/run.lua <file|dir> ...  just those quest files (CI passes a PR's changed files)
 -- luajit test/run.lua --unit          unit tests only
 --
+-- luajit test/run.lua --globals <file> ...  files that aren't quests: only check the globals they read
+--
 -- Options: --verbose (transcripts), --record <dir> (write transcripts for comparison),
 --          --quiet (only WARN and FAIL)
+--
+-- Every quest file is also checked for globals it reads that nothing defines.
 --
 -- Each quest file runs in its own luajit process, so quests can't leak into each other.
 -- Environment: see test/harness/one.lua (LSB_DIR, LQS_LIB, MODULES_DIR, LQS_BINDINGS).
@@ -17,6 +21,7 @@ local root = here .. "../"
 local targets = {}
 local unitOnly, quiet = false, false
 local verboseOpt, recordOpt = false, nil
+local globalsOnly = false
 
 local args = { ... }
 local i = 1
@@ -27,6 +32,8 @@ while i <= #args do
         unitOnly = true
     elseif a == "--quiet" or a == "-q" then
         quiet = true
+    elseif a == "--globals" then
+        globalsOnly = true
     elseif a == "--verbose" or a == "-v" then
         verboseOpt = true
     elseif a == "--record" then
@@ -124,7 +131,8 @@ for _, file in ipairs(files) do
 
     local opts = pad(verboseOpt and "1" or "0", 63) .. "\n" .. pad(recordOpt or "", 1023) .. "\n"
 
-    local cmd = "printf %s " .. shell(opts) .. " | LQS_OPTS_STDIN=1 " .. launcher .. shell(here .. "harness/one.lua") .. " " .. shell(file)
+    local env = "LQS_OPTS_STDIN=1 " .. (globalsOnly and "LQS_GLOBALS_ONLY=1 " or "")
+    local cmd = "printf %s " .. shell(opts) .. " | " .. env .. launcher .. shell(here .. "harness/one.lua") .. " " .. shell(file)
 
     local p = io.popen(cmd .. " 2>&1")
     local output = p:read("*a")

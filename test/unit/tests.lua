@@ -750,4 +750,25 @@ test("validate: a near miss of an entity field is named; a quest's own data is n
     T.ok(LQS._.nearField("back", { base = true }) == nil, "two slips in a short name is its own word")
 end))
 
+
+test("globals: an undefined name is found on every line, defined ones are not", wrap(function()
+    local path = os.tmpname()
+    local f = io.open(path, "w")
+    f:write(table.concat({
+        "local Verona = 'Verona'",
+        "OwnGlobal = 1",
+        "local function hint() return { entity = Verona1 } end",   -- line 3: never runs
+        "local x = xi.item and OwnGlobal and LQS and Verona",
+        "local y = KnownElsewhere",
+    }, "\n"))
+    f:close()
+
+    local missing = require("harness.globals").undefined(path, { KnownElsewhere = true })
+    os.remove(path)
+
+    T.eq(#missing, 1, "one undefined name")
+    T.eq(missing[1] and missing[1].name, "Verona1", "the misspelt local")
+    T.eq(missing[1] and missing[1].line, 3, "its line")
+end))
+
 return T

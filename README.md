@@ -412,6 +412,8 @@ LSB_DIR=/path/to/server luajit test/run.lua questpack/bastok/lqs_bug_report.lua 
 
 `-v` prints each quest's transcript (dialog, choices, vars, items); `--record <dir>` saves it (one file per quest, named by var and quest name), to compare a quest before and after a change.
 
+Every quest file is also checked for globals it reads that nothing defines (a misspelt local, a name from another file), on every line, whether or not the walk reaches it. `--globals <files>` runs only that check, for Lua files that aren't quests (helpers, systems, data). A global your server defines in files the harness doesn't load goes in `W.knownGlobals` from your harness extension.
+
 Your own quests run the same way. Point the harness at your server's files:
 
 | Variable | What |

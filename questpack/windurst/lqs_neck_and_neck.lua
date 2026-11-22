@@ -81,14 +81,12 @@ LQS.add(m, {
         ["West_Sarutabaruta"] =
         {
             {
-                id      = BONES,
                 name    = DhalmelBones,
                 marker  = LQS.SIDE_QUEST,
                 pos     = { 222.800, -21.077, 597.115, 153 }, --!pos 222.800 -21.077 597.115 115
                 default = LQS.NOTHING,
             },
             {
-                id    = GHOST,
                 name  = "Ghost Dhalmel",
                 type  = xi.objType.MOB,
                 base  = { 118, 16 },
