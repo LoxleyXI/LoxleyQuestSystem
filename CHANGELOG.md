@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.2
+
+- `!quest` hints could name the wrong step's NPC: the registry built them with `pairs` over the
+  steps table, which isn't in step order when the table's keys sit in its hash part (a constructor
+  with explicit `[n] =` keys, say). Now `ipairs`. This has been so since 2.x.
+
 ## 3.0.1
 
 - Tests: every quest file is checked for globals it reads that nothing defines, on every line

@@ -254,7 +254,7 @@ LQS.add = function(source, tbl)
 
         entityZone.label = entityLabel
 
-        for _, step in pairs(tbl.steps) do
+        for _, step in ipairs(tbl.steps) do
             table.insert(LQS.registry[registryName].hint, P.getStepHint(tbl, step, entityZone, entityType))
         end
 

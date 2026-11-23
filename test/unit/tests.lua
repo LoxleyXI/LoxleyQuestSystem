@@ -777,4 +777,29 @@ test("util: a weaponskill listener's skill reads as an id either way", wrap(func
     T.eq(LQS.util.skillId({ getID = function() return 226 end }), 226, "a skill")
 end))
 
+
+test("registry: each !quest hint matches its step, however the steps table was built", wrap(function()
+    -- Explicit keys in a constructor sit in the hash part: pairs() walks them
+    -- in hash order, not step order
+    local steps =
+    {
+        [1] = { First  = LQS.dialog({ event = { "One." } }) },
+        [2] = { Second = LQS.dialog({ event = { "Two." } }) },
+        [3] = { Third  = LQS.dialog({ event = { "Three." } }) },
+        [4] = { Fourth = LQS.dialog({ event = { "Four." } }) },
+        [5] = { Fifth  = LQS.dialog({ event = { "Five." } }) },
+    }
+
+    T.quest({
+        info     = { name = "Hint Order", var = "[UNIT]HINTS" },
+        entities = { [zoneName] = { T.npc("First"), T.npc("Second"), T.npc("Third"), T.npc("Fourth"), T.npc("Fifth") } },
+        steps    = steps,
+    })
+
+    local hint = LQS.registry["hint order"].hint
+    for i, name in ipairs({ "First", "Second", "Third", "Fourth", "Fifth" }) do
+        T.ok(hint[i] and hint[i]:find(name, 1, true), string.format("hint %d names %s (got %s)", i, name, tostring(hint[i])))
+    end
+end))
+
 return T
