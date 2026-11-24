@@ -802,4 +802,43 @@ test("registry: each !quest hint matches its step, however the steps table was b
     end
 end))
 
+
+test("registry: a step's hint names what moves it on, not a reminder", wrap(function()
+    T.quest({
+        info     = { name = "Hint Pick", var = "[UNIT]PICK" },
+        entities = { [zoneName] = { T.npc("Aaron"), T.npc("Zelda"), T.mob("Wolf", { key = "WOLF" }) } },
+        steps    =
+        {
+            -- Aaron sorts first but only reminds; Zelda moves the quest on
+            { Aaron = LQS.dialog({ event = { "Go see Zelda." }, step = false }), Zelda = LQS.dialog({ event = { "Hi." } }) },
+            -- a mob to defeat comes before someone to talk to
+            { Zelda = LQS.dialog({ event = { "Kill it." }, step = false }), WOLF = LQS.defeat({ mobs = { "WOLF" } }) },
+            { Aaron = LQS.trade({ required = 4096, step = false }), Zelda = LQS.trade({ required = 4097 }) },
+        },
+    })
+
+    local hint = LQS.registry["hint pick"].hint
+    T.ok(hint[1]:find("Zelda", 1, true), "step 1: " .. tostring(hint[1]))
+    T.ok(hint[2]:find("^Defeat"), "step 2: " .. tostring(hint[2]))
+    T.ok(hint[3]:find("^Trade Zelda"), "step 3: " .. tostring(hint[3]))
+end))
+
+test("registry: finish counts the steps that move the quest on", wrap(function()
+    -- last step only says goodbye: done one step earlier
+    T.quest({
+        info     = { name = "Finish Goodbye", var = "[UNIT]FIN1" },
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps    = { { Giver = LQS.dialog({ event = { "Go." } }) }, { Giver = LQS.dialog({ event = { "Done." } }) }, { Giver = LQS.nothingElse() } },
+    })
+    T.eq(LQS.registry["finish goodbye"].finish, 2, "goodbye step not counted")
+
+    -- last step hands over the reward: done only after it
+    T.quest({
+        info     = { name = "Finish Reward", var = "[UNIT]FIN2" },
+        entities = { [zoneName] = { T.npc("Giver") } },
+        steps    = { { Giver = LQS.dialog({ event = { "Go." } }) }, { Giver = LQS.trade({ required = 4096, reward = { gil = 10 } }) } },
+    })
+    T.eq(LQS.registry["finish reward"].finish, 2, "reward step counted")
+end))
+
 return T

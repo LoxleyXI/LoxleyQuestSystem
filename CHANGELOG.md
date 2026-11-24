@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.3
+
+- `!quest` shows the hint for the step the player is on (`hint[var + 1]`); it was off by two.
+- A step's hint names what moves the quest on: a builder that advances before your own function,
+  either before a reminder (`step = false`); a mob to defeat before a trade before someone to talk
+  to; ties by name, so the hint never depends on table order.
+- A quest counts as done when its var passes the last step that moves it on. A quest ending on its
+  reward step showed "Completed" one step early; a repeatable mid-loop showed "Completed" too.
+  Single-step entries (systems run from one NPC) stay unlisted.
+
 ## 3.0.2
 
 - `!quest` hints could name the wrong step's NPC: the registry built them with `pairs` over the

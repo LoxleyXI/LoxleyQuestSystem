@@ -85,12 +85,9 @@ commandObj.onTrigger = function(player, str)
 
         local stepInfo = fmt("Current step: {}/{}", status, questInfo.finish)
 
+        -- The var counts the steps done, so the player is on step status + 1
         if status < questInfo.finish then
-            if status <= 1 then
-                stepInfo = fmt("{} ({})", stepInfo, questInfo.hint[1])
-            else
-                stepInfo = fmt("{} ({})", stepInfo, questInfo.hint[status - 1])
-            end
+            stepInfo = fmt("{} ({})", stepInfo, questInfo.hint[status + 1] or "Unknown")
         else
             stepInfo = fmt("{} (Completed)", stepInfo)
         end

@@ -23,7 +23,7 @@ local m = Module:new("LQS_Loxley_Quest_System")
 -- Define globally for reloads and persistence between files
 LQS          = LQS or {}
 LQS.registry = LQS.registry or {}
-LQS.VERSION  = "3.0.2"
+LQS.VERSION  = "3.0.3"
 
 LQS.settings =
 {

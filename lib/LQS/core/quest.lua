@@ -127,30 +127,108 @@ end
 -----------------------------------
 -- LQS.add - Initialise new quest
 -----------------------------------
-function P.getStepHint(tbl, step, entityZone, entityType)
-    local hint = "Unknown"
+-- The quest var once the quest is done: the number of steps, less a last step
+-- that only says goodbye (nothing on it moves the quest on). A single step is a
+-- system run from one step (an NPC, a shop), not a quest to list: 0
+function P.finishStep(steps)
+    if #steps <= 1 then
+        return 0
+    end
 
-    for entityName, stepInfo in pairs(step) do
-        if entityName ~= "check" then
-            local label  = entityZone.label and entityZone.label[entityName] or entityName
-            local detail = fmt("{} in {}", string.gsub(label, "_", " "), entityZone[entityName])
+    local last = steps[#steps]
 
-            if entityType[entityName] == xi.objType.MOB then
-                return "Defeat " .. detail
-            else
-                if
-                    type(step[entityName]) == "table" and
-                    step[entityName].onTrade ~= nil
-                then
-                    return "Trade " .. detail
-                else
-                    hint = "Interact with " .. detail
-                end
+    if type(last) == "table" then
+        for name, entry in pairs(last) do
+            if name ~= "check" and P.entryInfo(entry).advances then
+                return #steps
             end
         end
     end
 
-    return hint
+    return #steps - 1
+end
+
+-- What a step entry is: whether it moves the quest on (a builder with step = false
+-- is a reminder; your own function is assumed to), and whether it takes trades
+function P.entryInfo(entry)
+    local info = { advances = false, builder = false, trade = false }
+
+    local function visit(part)
+        -- Your own function may or may not move the quest on: counted as moving it
+        -- (for finish), but a builder that surely does wins the hint over it
+        if type(part) == "function" then
+            info.advances = true
+            return
+        end
+
+        if type(part) ~= "table" then
+            return
+        end
+
+        if part.kind ~= nil then
+            if not (type(part.obj) == "table" and part.obj.step == false) then
+                info.advances = true
+                info.builder  = true
+            end
+
+            if part.kind == "trade" or part.onTrade ~= nil then
+                info.trade = true
+            end
+
+            return
+        end
+
+        if part.onTrade ~= nil then
+            info.trade = true
+        end
+
+        for _, event in ipairs({ "onTrigger", "onTrade", "onMobDeath" }) do
+            visit(part[event])
+        end
+
+        for _, sub in ipairs(part) do
+            visit(sub)
+        end
+    end
+
+    visit(entry)
+
+    return info
+end
+
+-- The !quest hint for one step: the entity that moves the quest on (a mob to
+-- defeat first, then a trade, then someone to talk to), named the same way
+-- every time, whatever order the step's table iterates in
+function P.getStepHint(tbl, step, entityZone, entityType)
+    local best, bestRank, bestName = nil, -1, nil
+
+    for entityName, entry in pairs(step) do
+        if entityName ~= "check" then
+            local info  = P.entryInfo(entry)
+            local isMob = entityType[entityName] == xi.objType.MOB
+            local moves = info.builder and 20 or info.advances and 10 or 0
+            local rank  = moves + (isMob and 3 or info.trade and 2 or 1)
+
+            if rank > bestRank or (rank == bestRank and tostring(entityName) < tostring(bestName)) then
+                best, bestRank, bestName = { isMob = isMob, trade = info.trade }, rank, entityName
+            end
+        end
+    end
+
+    if best == nil then
+        return "Unknown"
+    end
+
+    local label  = entityZone.label and entityZone.label[bestName] or bestName
+    local detail = fmt("{} in {}", string.gsub(label, "_", " "), entityZone[bestName])
+
+    if best.isMob then
+        return "Defeat " .. detail
+    elseif best.trade then
+        return "Trade " .. detail
+    end
+
+    return "Interact with " .. detail
 end
 
 LQS.add = function(source, tbl)
@@ -221,7 +299,7 @@ LQS.add = function(source, tbl)
             name        = tbl.info.name,
             author      = tbl.info.author,
             var         = tbl.info.var,
-            finish      = #tbl.steps - 1,
+            finish      = P.finishStep(tbl.steps),
             hint        = {},
             reward      = {},
             feature     = nil,
